@@ -54,12 +54,22 @@ export function resolveOrigin(params: {
   return ORIGIN_DIRECT;
 }
 
-/** Presencial sempre discreto; senão usa o que a loja configurou. */
+/**
+ * Presencial reduz "prominent" pra "discreet" (quem já está lá pode simplesmente
+ * pedir no balcão, não precisa do CTA chamativo) — mas "off" continua "off",
+ * a loja que desligou o WhatsApp não liga ele de novo só por causa da origem.
+ */
 export function resolveWhatsappMode(origin: string, tenantWhatsappMode: WhatsappMode): WhatsappMode {
-  return isPresencialOrigin(origin) ? "discreet" : tenantWhatsappMode;
+  if (!isPresencialOrigin(origin)) return tenantWhatsappMode;
+  return tenantWhatsappMode === "off" ? "off" : "discreet";
 }
 
-/** "discreet" = sem CTA fixo do WhatsApp (ver pergunta respondida no chat: esconde de vez, não só diminui). */
-export function shouldShowWhatsappCta(origin: string, tenantWhatsappMode: WhatsappMode): boolean {
-  return resolveWhatsappMode(origin, tenantWhatsappMode) !== "discreet";
+/** "prominent" = CTA fixo e chamativo (rodapé). */
+export function shouldShowProminentWhatsappCta(origin: string, tenantWhatsappMode: WhatsappMode): boolean {
+  return resolveWhatsappMode(origin, tenantWhatsappMode) === "prominent";
+}
+
+/** "discreet" = sem CTA fixo, só as dicas discretas (linha no topo do cardápio, botão pequeno no produto). */
+export function shouldShowDiscreetWhatsappHint(origin: string, tenantWhatsappMode: WhatsappMode): boolean {
+  return resolveWhatsappMode(origin, tenantWhatsappMode) === "discreet";
 }

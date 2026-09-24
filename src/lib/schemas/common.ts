@@ -40,7 +40,12 @@ export const originSchema = z
   .regex(/^[a-z][a-z0-9-]{0,19}$/, "slug curto: minúsculas, números e hífen, começando por letra");
 export type Origin = z.infer<typeof originSchema>;
 
-export const whatsappModeSchema = z.enum(["discreet", "direct"]);
+/**
+ * "discreet" (padrão): sem CTA fixo, só dicas discretas (ver lib/origin.ts).
+ * "prominent": CTA fixo e chamativo. "off": nenhum WhatsApp em lugar nenhum,
+ * nem os discretos — pra loja que não usa WhatsApp de jeito nenhum.
+ */
+export const whatsappModeSchema = z.enum(["discreet", "prominent", "off"]);
 export type WhatsappMode = z.infer<typeof whatsappModeSchema>;
 
 export const allergenSchema = z.enum([

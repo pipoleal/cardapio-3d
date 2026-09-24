@@ -4,26 +4,30 @@ import { useMemo, useState } from "react";
 import type { AppLocale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { formatPriceCents } from "@/lib/price";
-import { applyProductTemplate, buildWhatsappUrl } from "@/lib/whatsapp";
+import { buildProductWhatsappUrl } from "@/lib/whatsapp";
 import { WhatsAppCta } from "./WhatsAppCta";
 
-type Variant = { id: string; name: string; priceCents: number };
+type Variant = { id: string; name: string; nameInStoreLocale: string; priceCents: number };
 
 type ProductPurchasePanelProps = {
   locale: AppLocale;
+  /** `tenant.defaultLocale` — pra mensagem híbrida (ver lib/whatsapp.ts). */
+  storeDefaultLocale: AppLocale;
   basePriceCents: number;
   variants: Variant[];
   sizeLabel: string;
   servesLabel?: string;
   phone: string;
-  /** Já resolvido no locale certo (tenant.whatsappTemplate ou o padrão traduzido). */
+  /** Já resolvido no locale do cliente (tenant.whatsappTemplate ou o padrão traduzido). */
   whatsappTemplate: string;
   productName: string;
+  /** Nome do produto no locale padrão da loja — só usado quando o cliente está em outro idioma. */
+  productNameInStoreLocale: string;
   productUrl: string;
   whatsappCtaLabel: string;
   whatsappCaption?: string;
   /** Já combina `product.acceptsOrders` com a origem/whatsappMode (ver lib/origin.ts) — a página decide, o painel só mostra ou não. */
-  showWhatsappCta: boolean;
+  showProminentCta: boolean;
 };
 
 /**
@@ -33,6 +37,7 @@ type ProductPurchasePanelProps = {
  */
 export function ProductPurchasePanel({
   locale,
+  storeDefaultLocale,
   basePriceCents,
   variants,
   sizeLabel,
@@ -40,19 +45,40 @@ export function ProductPurchasePanel({
   phone,
   whatsappTemplate,
   productName,
+  productNameInStoreLocale,
   productUrl,
   whatsappCtaLabel,
   whatsappCaption,
-  showWhatsappCta,
+  showProminentCta,
 }: ProductPurchasePanelProps) {
   const [selectedId, setSelectedId] = useState(variants[0]?.id);
   const selectedVariant = variants.find((variant) => variant.id === selectedId);
   const priceCents = selectedVariant?.priceCents ?? basePriceCents;
 
-  const whatsappUrl = useMemo(() => {
-    const message = applyProductTemplate(whatsappTemplate, productName, selectedVariant?.name);
-    return buildWhatsappUrl(phone, `${message}\n${productUrl}`);
-  }, [whatsappTemplate, productName, selectedVariant, phone, productUrl]);
+  const whatsappUrl = useMemo(
+    () =>
+      buildProductWhatsappUrl({
+        phone,
+        template: whatsappTemplate,
+        clientLocale: locale,
+        storeDefaultLocale,
+        productName,
+        productNameInStoreLocale,
+        variantName: selectedVariant?.name,
+        variantNameInStoreLocale: selectedVariant?.nameInStoreLocale,
+        productUrl,
+      }),
+    [
+      phone,
+      whatsappTemplate,
+      locale,
+      storeDefaultLocale,
+      productName,
+      productNameInStoreLocale,
+      selectedVariant,
+      productUrl,
+    ],
+  );
 
   return (
     <>
@@ -84,7 +110,7 @@ export function ProductPurchasePanel({
         </div>
       )}
 
-      {showWhatsappCta && (
+      {showProminentCta && (
         <WhatsAppCta href={whatsappUrl} label={whatsappCtaLabel} caption={whatsappCaption} />
       )}
     </>

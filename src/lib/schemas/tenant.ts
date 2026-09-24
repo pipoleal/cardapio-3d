@@ -16,11 +16,10 @@ export const tenantSchema = z.object({
   coverUrl: z.string().optional(),
   whatsapp: z.string(),
   whatsappTemplate: localizedTextSchema.optional(),
-  // "discreet": esconde o CTA fixo do WhatsApp (loja física, o cliente já
-  // pode pedir no balcão). "direct": CTA normal, chamativo (padrão online).
-  // Origem presencial (lib/origin.ts) sempre força "discreet", não importa
-  // esse valor — ele só vale pra origem instagram/direto.
-  whatsappMode: whatsappModeSchema,
+  // 3 modos (ver common.ts) — "discreet" é o padrão. Origem presencial
+  // (lib/origin.ts) sempre reduz "prominent" pra "discreet" ("off"
+  // continua "off") — só vale como está pra origem instagram/direto.
+  whatsappMode: whatsappModeSchema.default("discreet"),
   instagram: z.string().optional(),
   address: z.string().optional(),
   openingHours: localizedTextSchema.optional(),

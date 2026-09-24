@@ -7,7 +7,8 @@ import {
   isValidOrigin,
   resolveOrigin,
   resolveWhatsappMode,
-  shouldShowWhatsappCta,
+  shouldShowDiscreetWhatsappHint,
+  shouldShowProminentWhatsappCta,
 } from "./origin";
 
 describe("isValidOrigin", () => {
@@ -90,16 +91,51 @@ describe("resolveOrigin", () => {
   });
 });
 
-describe("resolveWhatsappMode / shouldShowWhatsappCta", () => {
-  it("origem presencial força discreet mesmo com tenant configurado como direct", () => {
-    expect(resolveWhatsappMode("loja", "direct")).toBe("discreet");
-    expect(shouldShowWhatsappCta("mesa", "direct")).toBe(false);
+describe("resolveWhatsappMode", () => {
+  it("origem presencial reduz prominent pra discreet", () => {
+    expect(resolveWhatsappMode("loja", "prominent")).toBe("discreet");
+    expect(resolveWhatsappMode("mesa", "prominent")).toBe("discreet");
   });
 
-  it("origem instagram/direto usa o que o tenant configurou", () => {
-    expect(resolveWhatsappMode("instagram", "direct")).toBe("direct");
+  it("origem presencial não muda quem já é discreet", () => {
+    expect(resolveWhatsappMode("vitrine", "discreet")).toBe("discreet");
+  });
+
+  it("origem presencial NÃO liga o whatsapp de novo quando a loja desligou (off continua off)", () => {
+    expect(resolveWhatsappMode("loja", "off")).toBe("off");
+  });
+
+  it("origem instagram/direto usa o que o tenant configurou, os 3 modos", () => {
+    expect(resolveWhatsappMode("instagram", "prominent")).toBe("prominent");
     expect(resolveWhatsappMode("direto", "discreet")).toBe("discreet");
-    expect(shouldShowWhatsappCta("instagram", "direct")).toBe(true);
-    expect(shouldShowWhatsappCta("direto", "discreet")).toBe(false);
+    expect(resolveWhatsappMode("direto", "off")).toBe("off");
+  });
+});
+
+describe("shouldShowProminentWhatsappCta", () => {
+  it("só true quando o modo resolvido é prominent", () => {
+    expect(shouldShowProminentWhatsappCta("instagram", "prominent")).toBe(true);
+    expect(shouldShowProminentWhatsappCta("direto", "discreet")).toBe(false);
+    expect(shouldShowProminentWhatsappCta("direto", "off")).toBe(false);
+  });
+
+  it("origem presencial nunca mostra o CTA chamativo, mesmo com tenant prominent", () => {
+    expect(shouldShowProminentWhatsappCta("loja", "prominent")).toBe(false);
+  });
+});
+
+describe("shouldShowDiscreetWhatsappHint", () => {
+  it("só true quando o modo resolvido é discreet", () => {
+    expect(shouldShowDiscreetWhatsappHint("direto", "discreet")).toBe(true);
+    expect(shouldShowDiscreetWhatsappHint("instagram", "prominent")).toBe(false);
+    expect(shouldShowDiscreetWhatsappHint("direto", "off")).toBe(false);
+  });
+
+  it("origem presencial com tenant prominent vira discreet -> mostra a dica", () => {
+    expect(shouldShowDiscreetWhatsappHint("mesa", "prominent")).toBe(true);
+  });
+
+  it("origem presencial com tenant off continua off -> não mostra nada", () => {
+    expect(shouldShowDiscreetWhatsappHint("mesa", "off")).toBe(false);
   });
 });

@@ -13,7 +13,7 @@ import type { AppLocale } from "@/i18n/routing";
 import { isFresh } from "@/lib/fresh";
 import { resolveLocalizedText } from "@/lib/localized-text";
 import { getMenu } from "@/lib/menu";
-import { ORIGIN_DIRECT, shouldShowWhatsappCta } from "@/lib/origin";
+import { ORIGIN_DIRECT, shouldShowDiscreetWhatsappHint, shouldShowProminentWhatsappCta } from "@/lib/origin";
 import type { Category } from "@/lib/schemas/category";
 import type { WhatsappMode } from "@/lib/schemas/common";
 import type { Product } from "@/lib/schemas/product";
@@ -80,6 +80,15 @@ export default async function LojaPage(props: PageProps<"/loja/[tenant]/[locale]
         <LanguageSwitcher currentLocale={localeTyped} />
       </header>
 
+      {tenant.whatsapp && (
+        <Suspense fallback={null}>
+          <DiscreetCounterHintSection
+            label={t("discreetCounterHint")}
+            whatsappMode={tenant.whatsappMode}
+          />
+        </Suspense>
+      )}
+
       <CategoryTabs categories={categories} locale={localeTyped} />
 
       {categories.length === 0 || products.length === 0 ? (
@@ -120,8 +129,25 @@ async function WhatsappCtaSection({
   whatsappMode: WhatsappMode;
 }) {
   const origin = (await headers()).get("x-origin") ?? ORIGIN_DIRECT;
-  if (!shouldShowWhatsappCta(origin, whatsappMode)) return null;
+  if (!shouldShowProminentWhatsappCta(origin, whatsappMode)) return null;
   return <WhatsAppCta href={href} label={label} />;
+}
+
+/** "Para pedir agora, fale no balcão" — só no modo discreto (ver lib/origin.ts). */
+async function DiscreetCounterHintSection({
+  label,
+  whatsappMode,
+}: {
+  label: string;
+  whatsappMode: WhatsappMode;
+}) {
+  const origin = (await headers()).get("x-origin") ?? ORIGIN_DIRECT;
+  if (!shouldShowDiscreetWhatsappHint(origin, whatsappMode)) return null;
+  return (
+    <p data-testid="whatsapp-hint-counter" className="text-center text-xs text-muted">
+      {label}
+    </p>
+  );
 }
 
 /**

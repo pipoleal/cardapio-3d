@@ -34,7 +34,7 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [ ] Login (Google + e-mail) e proteção de rotas.
 - [ ] CRUD de categorias (arrastar para ordenar) e de produtos (formulário com abas pt/en/es).
 - [ ] Upload da capa com compressão.
-- [ ] Configurações da loja: nome, WhatsApp, `whatsappMode` (discreto/direto), idiomas, cor, logo.
+- [ ] Configurações da loja: nome, WhatsApp, `whatsappMode` (discreto/chamativo/desligado — padrão discreto), idiomas, cor, logo.
 - [ ] Interruptores Esgotado hoje · Saiu do forno · Aceita encomenda; botão "Marcar 'saiu do forno'" na visão geral.
 - [ ] Tradução automática (`POST /api/translate`) + fluxo "Aprovar tradução" / "Traduzir de novo" (mockup 05) + página Traduções com o que está pendente. `i18nStatus` é por entidade (ver `docs/MODELO-DE-DADOS.md`): traduzir um produto tem que preencher nome + descrição + nome de **todas** as variações numa tacada só (não campo a campo); o botão também precisa existir pra categorias (nome) e pra loja (descrição + horário de funcionamento + template do WhatsApp).
 - [ ] QR code da loja para baixar (PNG/PDF) — ótimo para colocar no balcão. Gerar com `?origem=loja` (força modo discreto do WhatsApp — ver `docs/ARQUITETURA.md`, "Origem da visita"). Mostrar também o link da bio do Instagram com `?origem=instagram`, com botão de copiar.

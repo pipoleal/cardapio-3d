@@ -67,7 +67,14 @@ Pra saber se o cliente já está na loja (e por isso pode simplesmente pedir no 
 
 O proxy expõe o resultado pras páginas via header `x-origin` (recalculado a cada request, nunca confia num `x-origin` vindo do cliente — mesmo padrão do `x-tenant`).
 
-**Regra de exibição do CTA do WhatsApp:** origens presenciais (`loja`, `mesa`, `vitrine` — lista configurável em `PRESENCIAL_ORIGINS`) sempre escondem o botão fixo do WhatsApp, não importa a configuração da loja. Pra `instagram`/`direto`, vale `tenant.whatsappMode` (`"discreet"` esconde, `"direct"` mostra).
+**3 modos (`tenant.whatsappMode`, padrão `"discreet"`):**
+- **`"prominent"`:** CTA fixo e chamativo no rodapé (cardápio inteiro e página de produto).
+- **`"discreet"`:** sem CTA fixo — só duas dicas discretas: uma linha no topo do cardápio ("Para pedir agora, fale no balcão") e, na página de produto (depois dos alergênicos), um botão pequeno com contorno ("Quer encomendar para outro dia? Fale no WhatsApp").
+- **`"off"`:** nenhum WhatsApp em lugar nenhum — nem o CTA fixo, nem as dicas discretas.
+
+**Regra de exibição:** origens presenciais (`loja`, `mesa`, `vitrine` — lista configurável em `PRESENCIAL_ORIGINS`) sempre reduzem `"prominent"` pra `"discreet"` (quem já está na loja pode simplesmente pedir no balcão); `"off"` continua `"off"` mesmo presencial — a loja que desligou o WhatsApp não liga de novo por causa da origem. Pra `instagram`/`direto`, vale `tenant.whatsappMode` como está. As dicas do modo discreto específicas de um produto (o botão depois dos alergênicos) também somem quando `product.acceptsOrders === false`.
+
+**Mensagem híbrida do WhatsApp (`lib/whatsapp.ts`):** quando o cliente está num idioma diferente do padrão da loja (`tenant.defaultLocale`, normalmente pt), a saudação do template continua no idioma do cliente, mas o nome do produto/variação vai no idioma da loja (o que a lojista reconhece no sistema/cozinha) + uma linha extra avisando o idioma do cliente ("Cliente em inglês"/"Cliente em espanhol", sempre em português — é pra lojista ler). Em pt (cliente == idioma padrão da loja), a mensagem fica como sempre foi.
 
 **Etapa 3 (painel):** a tela de QR Code deve gerar um QR com `?origem=loja` e mostrar o link da bio do Instagram com `?origem=instagram` (botão de copiar).
 

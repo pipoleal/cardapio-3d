@@ -20,6 +20,7 @@
     "mayContain": "May contain",
     "whatsappCta": "Order on WhatsApp",
     "whatsappGeneralMessage": "Hi! I found {name}'s menu and I'd like to place an order.",
+    "discreetCounterHint": "To order right now, just ask at the counter",
     "empty": "This menu doesn't have any products yet."
   },
   "product": {
@@ -33,6 +34,7 @@
     "allergensTitle": "Allergens",
     "mayContainTraces": "May contain traces of {list}.",
     "whatsappCaption": "The message already includes the item's name and size.",
-    "defaultWhatsappTemplate": "Hi! I'd like to order {produto} ({variacao})"
+    "defaultWhatsappTemplate": "Hi! I'd like to order {produto} ({variacao})",
+    "discreetWhatsappHint": "Want to order for another day? Message us on WhatsApp"
   }
 }

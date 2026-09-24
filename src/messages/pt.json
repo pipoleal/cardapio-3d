@@ -20,6 +20,7 @@
     "mayContain": "Pode conter",
     "whatsappCta": "Encomendar pelo WhatsApp",
     "whatsappGeneralMessage": "Olá! Vim pelo cardápio da {name} e quero fazer um pedido.",
+    "discreetCounterHint": "Para pedir agora, fale no balcão",
     "empty": "Esse cardápio ainda não tem produtos."
   },
   "product": {
@@ -33,6 +34,7 @@
     "allergensTitle": "Alergênicos",
     "mayContainTraces": "Pode conter traços de {list}.",
     "whatsappCaption": "A mensagem já vai com o nome do bolo e o tamanho.",
-    "defaultWhatsappTemplate": "Olá! Quero encomendar {produto} ({variacao})"
+    "defaultWhatsappTemplate": "Olá! Quero encomendar {produto} ({variacao})",
+    "discreetWhatsappHint": "Quer encomendar para outro dia? Fale no WhatsApp"
   }
 }

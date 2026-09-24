@@ -40,7 +40,7 @@ Reserva única de subdomínio.
   logoUrl?: string; coverUrl?: string;
   whatsapp: string;             // E.164 sem "+", ex.: "5511999999999"
   whatsappTemplate?: LocalizedText; // "Olá! Quero encomendar {produto} ({variacao})"
-  whatsappMode: "discreet" | "direct"; // "discreet" esconde o CTA fixo (loja física); só vale pra origem instagram/direto — origem presencial sempre força discreet (ver lib/origin.ts)
+  whatsappMode: "discreet" | "prominent" | "off"; // padrão "discreet". "prominent" = CTA fixo chamativo; "discreet" = sem CTA fixo, só dicas discretas; "off" = nenhum WhatsApp em lugar nenhum. Só vale pra origem instagram/direto — origem presencial sempre reduz "prominent" pra "discreet" ("off" continua "off", ver lib/origin.ts)
   instagram?: string; address?: string; openingHours?: LocalizedText;
   i18nStatus?: I18nStatus;      // libera description + openingHours + whatsappTemplate juntos
   locales: Locale[];            // ex.: ["pt","en","es"]

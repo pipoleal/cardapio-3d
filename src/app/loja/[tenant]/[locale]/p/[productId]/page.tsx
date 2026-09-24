@@ -11,9 +11,10 @@ import { buildExternalPath } from "@/i18n/resolve-locale";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveLocalizedText } from "@/lib/localized-text";
 import { getMenu } from "@/lib/menu";
-import { ORIGIN_DIRECT, shouldShowWhatsappCta } from "@/lib/origin";
+import { ORIGIN_DIRECT, shouldShowDiscreetWhatsappHint, shouldShowProminentWhatsappCta } from "@/lib/origin";
 import { getTenantBySlug } from "@/lib/tenant";
 import { buildTenantOrigin } from "@/lib/tenant-host";
+import { buildProductWhatsappUrl } from "@/lib/whatsapp";
 
 // Sem generateStaticParams aqui (não dá pra listar todo productId possível
 // de toda loja) — cada produto é 100% específico, não tem shell estático
@@ -102,10 +103,13 @@ export default async function ProductPage(
   const hasModel =
     product.model.status === "ready" && Boolean(product.model.glbUrl || product.model.usdzUrl);
 
+  // Mesmo i18nStatus do produto — a aprovação é por produto, não por campo.
+  const nameInStoreLocale = resolveLocalizedText(product.name, tenant.defaultLocale, product.i18nStatus);
+
   const variants = (product.variants ?? []).map((variant) => ({
     id: variant.id,
-    // Mesmo i18nStatus do produto — a aprovação é por produto, não por campo.
     name: resolveLocalizedText(variant.name, localeTyped, product.i18nStatus),
+    nameInStoreLocale: resolveLocalizedText(variant.name, tenant.defaultLocale, product.i18nStatus),
     priceCents: variant.priceCents,
   }));
 
@@ -120,7 +124,21 @@ export default async function ProductPage(
   // já é `instant = false` — não tem shell estático protegido, então não
   // há o que "vazar" pro prerender bloqueando.
   const origin = (await headers()).get("x-origin") ?? ORIGIN_DIRECT;
-  const showWhatsappCta = product.acceptsOrders && shouldShowWhatsappCta(origin, tenant.whatsappMode);
+  const showProminentCta = product.acceptsOrders && shouldShowProminentWhatsappCta(origin, tenant.whatsappMode);
+  const showDiscreetHint = product.acceptsOrders && shouldShowDiscreetWhatsappHint(origin, tenant.whatsappMode);
+
+  // Link do botão discreto "encomendar para outro dia": genérico, sem
+  // variante específica (não depende do seletor de tamanho, que é estado
+  // client-side dentro do ProductPurchasePanel).
+  const discreetWhatsappUrl = buildProductWhatsappUrl({
+    phone: tenant.whatsapp,
+    template: whatsappTemplate,
+    clientLocale: localeTyped,
+    storeDefaultLocale: tenant.defaultLocale,
+    productName: name,
+    productNameInStoreLocale: nameInStoreLocale,
+    productUrl,
+  });
 
   return (
     <div
@@ -159,6 +177,7 @@ export default async function ProductPage(
 
       <ProductPurchasePanel
         locale={localeTyped}
+        storeDefaultLocale={tenant.defaultLocale}
         basePriceCents={product.priceCents}
         variants={variants}
         sizeLabel={tProduct("sizeLabel")}
@@ -166,15 +185,28 @@ export default async function ProductPage(
         phone={tenant.whatsapp}
         whatsappTemplate={whatsappTemplate}
         productName={name}
+        productNameInStoreLocale={nameInStoreLocale}
         productUrl={productUrl}
         whatsappCtaLabel={t("whatsappCta")}
         whatsappCaption={tProduct("whatsappCaption")}
-        showWhatsappCta={showWhatsappCta}
+        showProminentCta={showProminentCta}
       />
 
       {description && <p className="text-sm text-muted">{description}</p>}
 
       <AllergensCard allergens={product.allergens} mayContain={product.mayContain} locale={localeTyped} />
+
+      {showDiscreetHint && (
+        <a
+          href={discreetWhatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="whatsapp-hint-discreet"
+          className="inline-flex min-h-11 w-fit items-center justify-center rounded-cta border border-border px-4 text-sm font-medium text-ink"
+        >
+          {tProduct("discreetWhatsappHint")}
+        </a>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ export function WhatsAppCta({ href, label, caption }: WhatsAppCtaProps) {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
+        data-testid="whatsapp-cta-prominent"
         className="flex h-[52px] w-full items-center justify-center gap-2 rounded-cta bg-accent text-base font-medium text-surface hover:opacity-90"
       >
         <WhatsAppIcon />
