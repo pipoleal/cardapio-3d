@@ -19,6 +19,28 @@ const LOCALE_COOKIE = "NEXT_LOCALE";
 const ORIGIN_QUERY_PARAM = "origem";
 
 /**
+ * Um `NextResponse.redirect()` normal, emitido aqui no middleware, pra um
+ * host DIFERENTE (subdomínio → domínio raiz) vira loop infinito no
+ * servidor de dev/self-hosted do Next: `resolve-routes.js` "relativiza"
+ * o `Location` comparando contra um `initUrl` construído com o hostname
+ * de BIND do servidor (ex.: "localhost"), não o `Host:` de verdade da
+ * requisição — então `http://localhost:3000/painel/demo` bate como
+ * "mesma origem" mesmo vindo de `demo.localhost:3000`, e o `Location`vira
+ * `/painel/demo` (relativo), que o navegador resolve de volta contra
+ * `demo.localhost:3000` → cai no mesmo redirect de novo, pra sempre.
+ * Devolver a navegação como HTML/JS (status 200, nunca é tratado como
+ * redirect por esse pós-processamento) contorna isso de vez, em
+ * qualquer ambiente.
+ */
+function redirectViaHtml(target: string): NextResponse {
+  const safeTarget = JSON.stringify(target);
+  return new NextResponse(
+    `<!doctype html><html><head><meta http-equiv="refresh" content="0;url=${target}"></head><body><script>location.replace(${safeTarget})</script></body></html>`,
+    { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
+  );
+}
+
+/**
  * Multi-tenant (host) + i18n (path) + origem da visita (query → cookie)
  * num único proxy, nessa ordem:
  *
@@ -27,8 +49,12 @@ const ORIGIN_QUERY_PARAM = "origem";
  *    depois, na página, via `lib/tenant.ts` (Firestore).
  * 2. Recalcula o header `x-tenant` do zero a partir do host e descarta
  *    qualquer `x-tenant` que tenha vindo do cliente — nunca confiamos nele.
- * 3. Só para rotas de loja (não `/painel`, que não é localizado nem tem
- *    origem ainda):
+ * 3. `/painel` no subdomínio da loja **redireciona** pro painel no domínio
+ *    raiz (`ROOT_DOMAIN/painel/<slug>`) — o painel só existe lá (Firebase
+ *    Authentication não aceita domínio curinga nos "domínios autorizados";
+ *    ver docs/DECISOES.md #16).
+ * 4. Só para rotas de loja (não `/painel`, que não é localizada nem tem
+ *    origem):
  *    a. Resolve `?origem=` → cookie `c3d_origin` → User-Agent (Instagram)
  *       → "direto" (lib/origin.ts) e recalcula o header `x-origin`, do
  *       zero, do mesmo jeito que `x-tenant` — nunca confia num `x-origin`
@@ -68,7 +94,10 @@ export function proxy(request: NextRequest) {
   requestHeaders.set("x-tenant", route.slug);
 
   if (route.kind === "painel") {
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    const rootOrigin = `${ROOT_DOMAIN.includes(":") ? "http" : "https"}://${ROOT_DOMAIN}`;
+    const restPath = pathname.replace(/^\/painel/, "");
+    const target = `${rootOrigin}/painel/${route.slug}${restPath}${search}`;
+    return redirectViaHtml(target);
   }
 
   const isDocNav = isDocumentNavigation(request.headers.get("sec-fetch-dest"));

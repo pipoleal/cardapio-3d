@@ -63,25 +63,28 @@ src/
       p/[productId]/page.tsx# produto: viewer 3D, botão AR, alergênicos, WhatsApp
     entrar/                 # login (Google/e-mail) — sempre no domínio raiz
     painel/[tenantSlug]/    # área do lojista (autenticada), sempre em <DOMINIO>/painel/<slug>
-      produtos/ categorias/ captura/ loja/ estatisticas/    #   nunca no subdomínio da loja — ver docs/DECISOES.md
+      produtos/ categorias/ captura/ traducoes/ qrcode/ configuracoes/ #   nunca no subdomínio — ver docs/DECISOES.md
     admin/                  # superadmin (Felipe): todas as lojas, captura como serviço
     api/
-      tenants/              # cadastro de loja + reserva de subdomínio
-      models/               # criar job 3D, consultar status (polling)
-      track/                # eventos de analytics
-      translate/            # tradução automática (en/es) para o lojista aprovar
+      auth/                 # session/signout — troca ID token do SDK web por cookie de sessão httpOnly
+      tenants/               # cadastro de loja + reserva de subdomínio
+      models/                # criar job 3D, consultar status (polling)
+      track/                 # eventos de analytics
   proxy.ts                  # subdomínio → rewrite (no Next < 16 o nome é middleware.ts)
   components/
-    menu/ viewer/ capture/ ui/ painel/
+    menu/ viewer/ capture/ ui/ painel/ auth/
   lib/
     firebase/client.ts      # SDK web (singleton)
     firebase/admin.ts       # Admin SDK (só servidor, "server-only")
+    auth/session.ts         # sessão (cookie httpOnly) + posse do tenant, "server-only"
+    actions/                # Server Actions do painel (Admin SDK + updateTag) — ver regra 4
     tenant.ts               # resolver loja a partir do host
     three-d/provider.ts     # interface ModelProvider
     three-d/meshy.ts        # implementação Meshy
+    translate/provider.ts   # interface Translator (fake em dev, Google em produção)
     whatsapp.ts             # monta link wa.me
     allergens.ts            # lista fixa de alergênicos
-    schemas/                # zod: Tenant, Category, Product, ModelJob
+    schemas/                # zod: Tenant, User, Category, Product, ModelJob
   i18n/                     # config next-intl
   messages/pt.json en.json es.json
 firebase/
@@ -97,7 +100,7 @@ docs/
    - Lista de subdomínios reservados (`www, app, admin, api, painel, static, mail, demo*`) vale **só para o cadastro de loja nova** (`POST /api/tenants` recusa esses slugs) — **não** afeta o roteamento de lojas que já existem. Por isso a loja `demo` (criada pelo seed) é servida normalmente pelo proxy, como qualquer outra.
 2. **Toda consulta de loja é filtrada por `tenantId`.** Os dados moram em `tenants/{tenantId}/...`. Nunca faça consulta sem o tenant.
 3. **Chaves secretas só no servidor** (`MESHY_API_KEY`, credenciais do Admin SDK). Arquivos que usam isso importam `server-only`.
-4. **Firestore lido no cliente só para dados públicos** (cardápio). Escritas do painel passam pelo SDK web protegidas pelas regras; **jobs 3D e estatísticas só são escritos pelo servidor** (Admin SDK).
+4. **Firestore lido no cliente só para dados públicos** (cardápio) ou pra arquivo já enviado ao Storage (upload de capa/logo usa o SDK web direto, protegido por `storage.rules`). **Toda escrita de dado passa pelo servidor**: Server Actions com Admin SDK pro CRUD do painel (`lib/actions/`, sempre confere sessão + posse do tenant antes de gravar, e termina com `updateTag(\`tenant:<id>\`)` — não `revalidateTag`, que exige um segundo argumento nesta versão e não é o recomendado dentro de Server Actions); Route Handlers com Admin SDK pra sessão de login (`/api/auth/*`) e pro que não é uma mutação de formulário. `firebase/firestore.rules`/`storage.rules` continuam valendo como segunda camada de defesa (testadas no emulador), mesmo não sendo mais o caminho principal de escrita.
 5. **Cardápio público renderizado no servidor** (RSC) com `revalidate` curto (60 s) ou `revalidateTag` quando o lojista salva; tem que abrir rápido no 4G.
 6. **Preço em centavos (inteiro)**, moeda `BRL`, formatado com `Intl.NumberFormat` conforme o locale.
 7. **Textos traduzíveis** são objetos `{ pt, en?, es? }`. Fallback: locale pedido → `pt`.

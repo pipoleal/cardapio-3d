@@ -30,15 +30,16 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [x] Verificação visual com Playwright (`npm run screenshot`) comparada aos mockups 01/02.
 
 ## Etapa 3 — Painel do lojista
-- [ ] Painel migra pro domínio raiz: `<DOMINIO>/painel/[tenantSlug]/...` (nunca mais no subdomínio da loja — ver `docs/ARQUITETURA.md`, "Painel do lojista", e `docs/DECISOES.md` #16). `proxy.ts` passa a redirecionar `<slug>.<DOMINIO>/painel` pra lá.
-- [ ] Login em `<DOMINIO>/entrar` (Google + e-mail) e proteção de `/painel/<slug>/*` e `/admin` checando o dono do tenant **no servidor**.
-- [ ] Layout do painel **igual aos mockups 04/05**: sidebar escura com seletor de loja (troca entre as lojas do usuário, ou todas se for superadmin) e navegação.
-- [ ] CRUD de categorias (arrastar para ordenar) e de produtos (formulário com abas pt/en/es).
-- [ ] Upload da capa com compressão.
-- [ ] Configurações da loja: nome, WhatsApp, `whatsappMode` (discreto/chamativo/desligado — padrão discreto), idiomas, cor, logo.
-- [ ] Interruptores Esgotado hoje · Saiu do forno · Aceita encomenda; botão "Marcar 'saiu do forno'" na visão geral.
-- [ ] Tradução automática (`POST /api/translate`) + fluxo "Aprovar tradução" / "Traduzir de novo" (mockup 05) + página Traduções com o que está pendente. `i18nStatus` é por entidade (ver `docs/MODELO-DE-DADOS.md`): traduzir um produto tem que preencher nome + descrição + nome de **todas** as variações numa tacada só (não campo a campo); o botão também precisa existir pra categorias (nome) e pra loja (descrição + horário de funcionamento + template do WhatsApp).
-- [ ] QR code da loja para baixar (PNG/PDF) — ótimo para colocar no balcão. Gerar com `?origem=loja` (força modo discreto do WhatsApp — ver `docs/ARQUITETURA.md`, "Origem da visita"). Mostrar também o link da bio do Instagram com `?origem=instagram`, com botão de copiar.
+- [x] Painel migra pro domínio raiz: `<DOMINIO>/painel/[tenantSlug]/...` (nunca mais no subdomínio da loja — ver `docs/ARQUITETURA.md`, "Painel do lojista", e `docs/DECISOES.md` #16). `proxy.ts` passa a redirecionar `<slug>.<DOMINIO>/painel` pra lá.
+- [x] Login em `<DOMINIO>/entrar` (Google + e-mail) e proteção de `/painel/<slug>/*` e `/admin` checando o dono do tenant **no servidor**.
+- [x] Layout do painel **igual aos mockups 04/05**: sidebar escura com seletor de loja (troca entre as lojas do usuário, ou todas se for superadmin) e navegação.
+- [x] CRUD de categorias (setas pra reordenar — sem drag-and-drop, biblioteca nova fora do stack aprovado) e de produtos (mockup 05: nome, categoria, preço, descrição, alergênicos; variações ficam de fora desta etapa).
+- [x] Upload da capa com compressão (Canvas API, cliente) — `next.config.ts` precisou de `images.remotePatterns` pro Storage (ver `docs/DECISOES.md` #18).
+- [x] Configurações da loja: nome, WhatsApp, `whatsappMode` (discreto/chamativo/desligado — padrão discreto), idiomas, cor, logo.
+- [x] Interruptores Esgotado hoje · Saiu do forno · Aceita encomenda; botão "Marcar 'saiu do forno'" na visão geral.
+- [x] Tradução automática (Server Action `translateEntity`, não Route Handler — ver `docs/ARQUITETURA.md`) + fluxo "Aprovar tradução" / "Traduzir de novo" (mockup 05) + página Traduções com o que está pendente. `i18nStatus` é por entidade (ver `docs/MODELO-DE-DADOS.md`): traduzir um produto preenche nome + descrição + nome de **todas** as variações numa tacada só (não campo a campo); o botão também existe pra categorias (nome) e pra loja (descrição + horário de funcionamento + template do WhatsApp). Provedor `fake` (padrão dev) ou `google` via `TRANSLATOR_PROVIDER`.
+- [x] QR code da loja para baixar (PNG) — ótimo para colocar no balcão. Gerado com `?origem=loja` (força modo discreto do WhatsApp — ver `docs/ARQUITETURA.md`, "Origem da visita"). Mostra também o link da bio do Instagram com `?origem=instagram`, com botão de copiar.
+- [x] Testes das regras do Firestore/Storage (`@firebase/rules-unit-testing`, `npm run test:rules`) e verificação visual em 1440px contra os mockups 04/05 (`npm run screenshot-painel`).
 
 ## Etapa 4 — 3D e AR
 - [ ] `ModelProvider` + `MeshyProvider`.

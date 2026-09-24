@@ -66,7 +66,7 @@
 - **Textos da interface:** `src/messages/*.json`.
 - **Conteúdo da loja:** campos `LocalizedText = { pt: string; en?: string; es?: string }`.
 - A loja escolhe quais idiomas mostrar (`tenant.locales`). Seletor de idioma no topo do cardápio.
-- **Tradução automática com aprovação (já no piloto, como no mockup 05):** `POST /api/translate` (servidor) preenche en/es e marca `i18nStatus = "auto"`; o lojista revisa e clica em "Aprovar tradução" (`"approved"`). O cliente só vê traduções aprovadas. Provedor sugerido: Google Cloud Translation (tem cota grátis mensal; confira os limites atuais) atrás de uma interface `Translator`.
+- **Tradução automática com aprovação (Etapa 3, como no mockup 05):** a Server Action `translateEntity` (`lib/actions/translate.ts`) traduz a entidade inteira (produto: nome + descrição + nome de cada variação; categoria: nome; loja: descrição + horário + template do WhatsApp) numa gravação só e marca `i18nStatus[locale] = "auto"`; o lojista revisa e clica em "Aprovar tradução" (`approveTranslation`, vira `"approved"`). O cliente só vê traduções aprovadas. Provedor atrás da interface `Translator` (`lib/translate/`): `TRANSLATOR_PROVIDER=fake` em dev (sem chamada de rede) ou `=google` (Cloud Translation, mesma credencial do Admin SDK).
 
 ## Origem da visita e modo do WhatsApp
 

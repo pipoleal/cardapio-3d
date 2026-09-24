@@ -28,7 +28,11 @@ Reserva única de subdomínio.
 ### `users/{uid}`
 ```ts
 { email: string; displayName?: string; tenantIds: string[]; createdAt: Timestamp }
-// superadmin = custom claim no Auth, não campo aqui
+// superadmin = custom claim no Auth, não campo aqui.
+// tenantIds guarda o tenantId de cada loja — que neste app é sempre igual
+// ao slug (ver scripts/seed.ts), então dá pra usar direto em getTenantBySlug.
+// Schema zod em src/lib/schemas/user.ts; lido por src/lib/user.ts (sem
+// 'use cache' — decide acesso, precisa estar sempre fresco).
 ```
 
 ### `tenants/{tenantId}`

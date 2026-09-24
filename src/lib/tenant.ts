@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { connection } from "next/server";
 import { adminDb } from "./firebase/admin";
 import { toDate } from "./firestore-dates";
 import { tenantSchema, type Tenant } from "./schemas/tenant";
@@ -40,4 +41,34 @@ export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
   if (!parsed.success || !parsed.data.active) return null;
 
   return parsed.data;
+}
+
+/**
+ * Todas as lojas (ativas ou não) — só pro `/admin` do superadmin e pro
+ * seletor de loja do painel quando é superadmin (mockup 04: "ou todas, se
+ * for superadmin"). Sem `'use cache'`: é uma lista de navegação, não
+ * dado crítico de segurança, e o piloto tem poucas lojas — não vale a
+ * pena inventar mais uma tag de cache só pra isso.
+ */
+export async function listAllTenants(): Promise<Tenant[]> {
+  // Chamada de `/admin/page.tsx`, que (ao contrário das páginas do painel)
+  // não lê `cookies()` diretamente — sem isso, o build tenta prerenderizar
+  // e falha no valor aleatório que o Admin SDK usa por baixo dos panos
+  // (crypto.randomBytes). `connection()` força "isso é por request", igual
+  // ao padrão de driver de banco síncrono da doc do Next.
+  await connection();
+  const snap = await adminDb.collection("tenants").orderBy("name", "asc").get();
+
+  return snap.docs
+    .map((doc) => {
+      const data = doc.data();
+      return tenantSchema.safeParse({
+        id: doc.id,
+        ...data,
+        createdAt: toDate(data.createdAt),
+        updatedAt: toDate(data.updatedAt),
+      });
+    })
+    .filter((result) => result.success)
+    .map((result) => result.data);
 }
