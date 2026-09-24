@@ -44,7 +44,7 @@
 
 ## Multi-tenant
 
-- **Resolução:** `proxy.ts` extrai o subdomínio de `host` comparando com `NEXT_PUBLIC_ROOT_DOMAIN`. Em dev, `demo.localhost:3000`.
+- **Resolução:** `proxy.ts` extrai o subdomínio de `host` comparando com `NEXT_PUBLIC_ROOT_DOMAIN`. Em dev, `demo.localhost:3000`. O proxy tenta resolver **qualquer** subdomínio como tenant (inclusive `demo`, a loja de exemplo criada pelo seed) — a lista de subdomínios reservados do `CLAUDE.md` só é usada para recusar slugs no cadastro (`POST /api/tenants`), não para bloquear roteamento.
 - **Isolamento:** dados em `tenants/{tenantId}/...`; regras do Firestore conferem se `request.auth.uid` está em `tenant.ownerUids` ou se é superadmin.
 - **DNS/Vercel:** domínio raiz + `*.<DOMINIO>` no projeto Vercel. Domínio curinga na Vercel exige usar os nameservers da Vercel.
 - **Futuro:** domínio próprio da loja (`cardapio.confeitaria.com.br`) → mapear `customDomains/{host}` → tenantId.

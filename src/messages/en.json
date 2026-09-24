@@ -1,0 +1,11 @@
+{
+  "store": {
+    "eyebrow": "MENU",
+    "placeholderTitle": "The full menu ships in the next stage",
+    "placeholderBody": "This is the \"{name}\" store, already resolved by the right host and language. Categories, products and the WhatsApp button land in Stage 2."
+  },
+  "notFound": {
+    "title": "Store not found",
+    "description": "Check the address or go back to the home page."
+  }
+}

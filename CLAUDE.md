@@ -3,6 +3,7 @@
 > Guia para o Claude Code. Leia este arquivo **inteiro** antes de qualquer tarefa.
 > Detalhes em `docs/`: ARQUITETURA.md, MODELO-DE-DADOS.md, PIPELINE-3D.md, ROADMAP.md, DECISOES.md.
 > **Visual:** `docs/REFERENCIAS-VISUAIS.md` + os PNGs em `docs/referencias-visuais/` são a fonte da verdade do layout. Abra o PNG da tela antes de implementá-la.
+> **Next.js:** para APIs do Next.js (ex.: `proxy.ts`, cache, roteamento), confira a documentação da versão instalada em `node_modules/next/dist/docs` antes de usar o que você lembra — a API muda entre versões major e a memória do modelo pode estar desatualizada.
 
 ## 1. O produto
 
@@ -89,10 +90,10 @@ docs/
 
 ## 5. Regras de arquitetura
 
-1. **Multi-tenant pelo host.** O `proxy.ts` lê o `host`:
+1. **Multi-tenant pelo host.** O `proxy.ts` lê o `host` e **ignora/sobrescreve qualquer header `x-tenant` vindo do cliente** — o `x-tenant` que os Route Handlers e o painel recebem é sempre recalculado pelo proxy a partir do host, nunca repassado da requisição original:
    - `ROOT_DOMAIN` ou `www` → rotas de `(site)`.
-   - `<slug>.ROOT_DOMAIN` → rewrite para `/loja/<slug>/<locale>/...` (e `/painel` fica em `/painel` com o tenant no header `x-tenant`).
-   - Subdomínios reservados: `www, app, admin, api, demo*, painel, static, mail`. (`demo` é uma loja real de exemplo, criada pelo seed.)
+   - `<slug>.ROOT_DOMAIN` → rewrite para `/loja/<slug>/<locale>/...` (e `/painel` fica em `/painel` com o tenant no header `x-tenant`, definido pelo proxy).
+   - Lista de subdomínios reservados (`www, app, admin, api, painel, static, mail, demo*`) vale **só para o cadastro de loja nova** (`POST /api/tenants` recusa esses slugs) — **não** afeta o roteamento de lojas que já existem. Por isso a loja `demo` (criada pelo seed) é servida normalmente pelo proxy, como qualquer outra.
 2. **Toda consulta de loja é filtrada por `tenantId`.** Os dados moram em `tenants/{tenantId}/...`. Nunca faça consulta sem o tenant.
 3. **Chaves secretas só no servidor** (`MESHY_API_KEY`, credenciais do Admin SDK). Arquivos que usam isso importam `server-only`.
 4. **Firestore lido no cliente só para dados públicos** (cardápio). Escritas do painel passam pelo SDK web protegidas pelas regras; **jobs 3D e estatísticas só são escritos pelo servidor** (Admin SDK).
@@ -126,3 +127,13 @@ Veja `.env.example`. Nunca faça commit do `.env.local`.
 - Na dúvida sobre regra de negócio, **pergunte ao Felipe** em vez de inventar.
 - Registre decisões novas em `docs/DECISOES.md`.
 - O projeto antigo **BoaPedida** (Django, em `C:\Users\felip\BoaPedida`) serve **só de referência** de UX e de modelo de cardápio. Não copie código de lá.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

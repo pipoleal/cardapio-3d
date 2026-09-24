@@ -12,11 +12,11 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [x] `lib/firebase/client.ts` e `lib/firebase/admin.ts` (usando os emuladores quando `NEXT_PUBLIC_USE_EMULATORS=true`).
 
 ## Etapa 1 — Multi-tenant + i18n
-- [ ] `proxy.ts`: host → tenant; rotas do site × loja × painel; locale.
-- [ ] `next-intl` com pt/en/es e o seletor de idioma.
-- [ ] `lib/tenant.ts` (`getTenantBySlug`, com cache).
-- [ ] Design tokens + fontes (Fraunces e DM Sans) conforme `docs/REFERENCIAS-VISUAIS.md`; componentes base (Button, Pill, Card, Chip, Toggle).
-- [ ] Script `scripts/seed.ts`: loja **demo** (confeitaria) com 4 categorias e ~10 produtos, fotos de exemplo e alergênicos.
+- [x] `proxy.ts`: host → tenant; rotas do site × loja × painel; locale. Reimplementa a semântica "as-needed" do next-intl em vez de compor `createMiddleware` direto (não dá pra aninhar sob `/loja/<slug>`; motivo comentado em `src/i18n/routing.ts`). Testado em `src/lib/tenant-host.test.ts` e `src/i18n/resolve-locale.test.ts`.
+- [x] `next-intl` com pt/en/es e o seletor de idioma (`src/components/ui/LanguageSwitcher.tsx`, pílula PT/EN/ES).
+- [x] `lib/tenant.ts` (`getTenantBySlug`, com `React.cache`).
+- [x] Design tokens + fontes (Fraunces e DM Sans) conforme `docs/REFERENCIAS-VISUAIS.md`; componentes base (Button, Pill, Card, Chip, Toggle) em `src/components/ui/`.
+- [x] Script `scripts/seed.ts`: loja **demo** (confeitaria) com 4 categorias e 10 produtos, capas placeholder geradas em `public/demo/` e alergênicos. Rodar com `npm run seed` (emuladores no ar).
 
 ## Etapa 2 — Cardápio público (sem 3D ainda)
 - [ ] Página da loja **igual ao mockup 01**: cabeçalho, seletor de idioma, faixa "Saiu do forno agora", abas de categoria fixas, cards com selo 3D, estados "Saiu do forno" e "Esgotado hoje", CTA fixo do WhatsApp.

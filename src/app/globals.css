@@ -1,1 +1,41 @@
 @import "tailwindcss";
+
+/*
+ * Design tokens — docs/REFERENCIAS-VISUAIS.md é a fonte da verdade.
+ * Usar sempre pelo nome do token (bg-accent, text-ink, rounded-card...),
+ * nunca hex solto nos componentes (CLAUDE.md, regra 11).
+ */
+@theme {
+  --color-bg: #f6efe6;
+  --color-bg-panel: #faf7f2;
+  --color-surface: #fffdf9;
+  --color-ink: #2a1c15;
+  --color-muted: #6b5a4e;
+  --color-border: #e6d9c8;
+  --color-accent: #9c3d27;
+  --color-accent-soft: #c27a5a;
+  --color-success: #2f5d50;
+  --color-warning: #6a4a10;
+  --color-thumb-1: #efd9c6;
+  --color-thumb-2: #f0ddb8;
+  --color-thumb-3: #e3cfc2;
+  --color-capture-bg: #17110d;
+  --color-capture-surface: #2a211b;
+  --color-capture-highlight: #f2c9b8;
+  --color-rec: #b3261e;
+
+  /* Cards 16px; miniaturas 12px (== CTA do cliente); inputs/botões do painel 10px. */
+  --radius-card: 16px;
+  --radius-thumb: 12px;
+  --radius-cta: 12px;
+  --radius-input: 10px;
+
+  /* Sobrescrevem font-sans/font-heading do Tailwind — ver src/app/layout.tsx (next/font). */
+  --font-sans: var(--font-dm-sans), sans-serif;
+  --font-heading: var(--font-fraunces), serif;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}

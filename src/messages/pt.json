@@ -1,0 +1,11 @@
+{
+  "store": {
+    "eyebrow": "CARDÁPIO",
+    "placeholderTitle": "O cardápio completo chega na próxima etapa",
+    "placeholderBody": "Esta é a loja \"{name}\", já resolvida pelo host e pelo idioma certos. Categorias, produtos e o botão do WhatsApp entram na Etapa 2."
+  },
+  "notFound": {
+    "title": "Loja não encontrada",
+    "description": "Confira o endereço ou volte para a página inicial."
+  }
+}
