@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+.env*.local
+.env
+*.log
+firebase-debug.log
+.firebase/
+.vercel/
+.DS_Store
+Thumbs.db
+tmp_scaffold/
+*.tsbuildinfo
+coverage/

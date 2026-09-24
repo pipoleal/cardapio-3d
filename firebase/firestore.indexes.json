@@ -1,0 +1,11 @@
+{
+  "indexes": [
+    { "collectionGroup": "products", "queryScope": "COLLECTION",
+      "fields": [ { "fieldPath": "categoryId", "order": "ASCENDING" }, { "fieldPath": "order", "order": "ASCENDING" } ] },
+    { "collectionGroup": "products", "queryScope": "COLLECTION",
+      "fields": [ { "fieldPath": "available", "order": "ASCENDING" }, { "fieldPath": "order", "order": "ASCENDING" } ] },
+    { "collectionGroup": "modelJobs", "queryScope": "COLLECTION",
+      "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] }
+  ],
+  "fieldOverrides": []
+}

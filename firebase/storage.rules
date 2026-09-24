@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSuperadmin() { return request.auth != null && request.auth.token.role == 'superadmin'; }
+    function isOwner(tenantId) {
+      return isSuperadmin() || (request.auth != null &&
+        request.auth.uid in firestore.get(/databases/(default)/documents/tenants/$(tenantId)).data.ownerUids);
+    }
+    function isImage(maxMb) {
+      return request.resource.size < maxMb * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    match /tenants/{tenantId}/branding/{file} {
+      allow read: if true;
+      allow write: if isOwner(tenantId) && isImage(4);
+    }
+
+    match /tenants/{tenantId}/products/{productId}/cover.webp {
+      allow read: if true;
+      allow write: if isOwner(tenantId) && isImage(4);
+    }
+
+    match /tenants/{tenantId}/products/{productId}/captures/{jobId}/{file} {
+      allow read: if isOwner(tenantId);
+      allow write: if isOwner(tenantId) && isImage(8);
+    }
+
+    // GLB/USDZ/poster: escritos só pelo servidor (Admin SDK ignora as regras).
+    match /tenants/{tenantId}/products/{productId}/models/{file} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
