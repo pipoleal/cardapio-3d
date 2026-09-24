@@ -61,8 +61,9 @@ src/
     loja/[tenant]/[locale]/ # cardápio público (recebe rewrite do subdomínio)
       page.tsx              # lista de categorias e produtos
       p/[productId]/page.tsx# produto: viewer 3D, botão AR, alergênicos, WhatsApp
-    painel/                 # área do lojista (autenticada), acessada em <tenant>.<DOMINIO>/painel
-      produtos/ categorias/ captura/ loja/ estatisticas/
+    entrar/                 # login (Google/e-mail) — sempre no domínio raiz
+    painel/[tenantSlug]/    # área do lojista (autenticada), sempre em <DOMINIO>/painel/<slug>
+      produtos/ categorias/ captura/ loja/ estatisticas/    #   nunca no subdomínio da loja — ver docs/DECISOES.md
     admin/                  # superadmin (Felipe): todas as lojas, captura como serviço
     api/
       tenants/              # cadastro de loja + reserva de subdomínio
@@ -90,9 +91,9 @@ docs/
 
 ## 5. Regras de arquitetura
 
-1. **Multi-tenant pelo host.** O `proxy.ts` lê o `host` e **ignora/sobrescreve qualquer header `x-tenant` vindo do cliente** — o `x-tenant` que os Route Handlers e o painel recebem é sempre recalculado pelo proxy a partir do host, nunca repassado da requisição original:
-   - `ROOT_DOMAIN` ou `www` → rotas de `(site)`.
-   - `<slug>.ROOT_DOMAIN` → rewrite para `/loja/<slug>/<locale>/...` (e `/painel` fica em `/painel` com o tenant no header `x-tenant`, definido pelo proxy).
+1. **Multi-tenant pelo host.** O `proxy.ts` lê o `host` e **ignora/sobrescreve qualquer header `x-tenant` vindo do cliente** — o `x-tenant` que os Route Handlers recebem é sempre recalculado pelo proxy a partir do host, nunca repassado da requisição original:
+   - `ROOT_DOMAIN` ou `www` → rotas de `(site)`, incluindo `/entrar` (login) e `/painel/<tenantSlug>/...` (área do lojista — **sempre no domínio raiz**, nunca no subdomínio da loja; motivo em `docs/DECISOES.md`).
+   - `<slug>.ROOT_DOMAIN` → rewrite para `/loja/<slug>/<locale>/...`; acessar `/painel` nesse subdomínio **redireciona** para `ROOT_DOMAIN/painel/<slug>`.
    - Lista de subdomínios reservados (`www, app, admin, api, painel, static, mail, demo*`) vale **só para o cadastro de loja nova** (`POST /api/tenants` recusa esses slugs) — **não** afeta o roteamento de lojas que já existem. Por isso a loja `demo` (criada pelo seed) é servida normalmente pelo proxy, como qualquer outra.
 2. **Toda consulta de loja é filtrada por `tenantId`.** Os dados moram em `tenants/{tenantId}/...`. Nunca faça consulta sem o tenant.
 3. **Chaves secretas só no servidor** (`MESHY_API_KEY`, credenciais do Admin SDK). Arquivos que usam isso importam `server-only`.

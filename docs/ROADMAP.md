@@ -30,8 +30,9 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [x] Verificação visual com Playwright (`npm run screenshot`) comparada aos mockups 01/02.
 
 ## Etapa 3 — Painel do lojista
-- [ ] Layout do painel **igual aos mockups 04/05**: sidebar escura com seletor de loja e navegação.
-- [ ] Login (Google + e-mail) e proteção de rotas.
+- [ ] Painel migra pro domínio raiz: `<DOMINIO>/painel/[tenantSlug]/...` (nunca mais no subdomínio da loja — ver `docs/ARQUITETURA.md`, "Painel do lojista", e `docs/DECISOES.md` #16). `proxy.ts` passa a redirecionar `<slug>.<DOMINIO>/painel` pra lá.
+- [ ] Login em `<DOMINIO>/entrar` (Google + e-mail) e proteção de `/painel/<slug>/*` e `/admin` checando o dono do tenant **no servidor**.
+- [ ] Layout do painel **igual aos mockups 04/05**: sidebar escura com seletor de loja (troca entre as lojas do usuário, ou todas se for superadmin) e navegação.
 - [ ] CRUD de categorias (arrastar para ordenar) e de produtos (formulário com abas pt/en/es).
 - [ ] Upload da capa com compressão.
 - [ ] Configurações da loja: nome, WhatsApp, `whatsappMode` (discreto/chamativo/desligado — padrão discreto), idiomas, cor, logo.

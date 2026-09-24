@@ -5,9 +5,10 @@
 ```
                     ┌──────────────────────── Vercel (Next.js) ────────────────────────┐
  cliente final ───▶ │ proxy.ts (host → tenant)                                          │
- (celular)          │   ├─ <DOMINIO>            → (site) landing / cadastro             │
-                    │   ├─ <slug>.<DOMINIO>     → /loja/[tenant]/[locale]  (RSC)        │
- lojista ─────────▶ │   ├─ <slug>.<DOMINIO>/painel → painel (client + regras)           │
+ (celular)          │   ├─ <DOMINIO>              → (site) landing / cadastro / entrar  │
+                    │   ├─ <DOMINIO>/painel/<slug> → painel (client + regras)           │
+ lojista ─────────▶ │   ├─ <slug>.<DOMINIO>       → /loja/[tenant]/[locale]  (RSC)      │
+                    │   │      (/painel aqui redireciona pro painel no domínio raiz)    │
                     │   └─ /api/*  Route Handlers (Admin SDK, chave Meshy)              │
                     └───────┬──────────────────────────────┬───────────────────────────┘
                             │                              │
@@ -29,9 +30,9 @@
 6. Cada ação dispara `POST /api/track` (ver Analytics).
 
 ### 2. Lojista cadastra a loja
-1. Em `<DOMINIO>/cadastro`: login (Google ou e-mail), nome da loja, **subdomínio desejado**, WhatsApp.
+1. Em `<DOMINIO>/cadastro`: login (Google ou e-mail, via `<DOMINIO>/entrar`), nome da loja, **subdomínio desejado**, WhatsApp.
 2. `POST /api/tenants` valida o slug (regex `^[a-z0-9](-?[a-z0-9]){2,30}$`, lista de reservados) e faz uma **transação**: cria `slugs/{slug}` (garante unicidade) + `tenants/{id}` + `users/{uid}`.
-3. Redireciona para `<slug>.<DOMINIO>/painel`.
+3. Redireciona para `<DOMINIO>/painel/<slug>`.
 
 ### 3. Lojista cadastra um produto com 3D
 1. Painel → Produtos → Novo: nome (pt obrigatório, en/es opcionais), descrição, preço, categoria, alergênicos, variações, foto de capa.
@@ -48,6 +49,16 @@
 - **Isolamento:** dados em `tenants/{tenantId}/...`; regras do Firestore conferem se `request.auth.uid` está em `tenant.ownerUids` ou se é superadmin.
 - **DNS/Vercel:** domínio raiz + `*.<DOMINIO>` no projeto Vercel. Domínio curinga na Vercel exige usar os nameservers da Vercel.
 - **Futuro:** domínio próprio da loja (`cardapio.confeitaria.com.br`) → mapear `customDomains/{host}` → tenantId.
+
+## Painel do lojista
+
+**Sempre no domínio raiz** (`<DOMINIO>/painel/<tenantSlug>/...`), nunca no subdomínio da loja — motivo: o Firebase Authentication não aceita domínio curinga na lista de "domínios autorizados" (cada domínio precisa ser cadastrado explicitamente; confirmado pesquisando a documentação e a comunidade do Firebase antes desta decisão — ver `docs/DECISOES.md`). Com o painel espalhado pelos subdomínios, cada `<slug>.<DOMINIO>` viraria um domínio autorizado à parte, com sessão de login separada por loja; no domínio raiz, um único domínio autorizado cobre todo mundo.
+
+- **Login:** `<DOMINIO>/entrar` (Google + e-mail/senha) — único ponto de entrada; não existe login no subdomínio da loja.
+- **Seletor de loja** (sidebar, mockup 04): troca entre as lojas do usuário (`users/{uid}.tenantIds`); superadmin vê todas.
+- **No subdomínio da loja**, acessar `/painel` (ou `/painel/*`) **redireciona** (`proxy.ts`) para `<DOMINIO>/painel/<slug>` — mantém um link antigo/favoritado funcionando sem duplicar a área logada em dois lugares.
+- **"Ver no cardápio"** (dentro do painel) abre `<slug>.<DOMINIO>` — o cardápio público de verdade, no subdomínio da loja — numa aba nova.
+- **Proteção:** `/painel/<slug>/*` e `/admin` conferem o dono do tenant **no servidor** (sessão/ID token do Firebase Auth + `tenant.ownerUids`, ou custom claim `role=superadmin`), não só no cliente.
 
 ## Internacionalização
 
