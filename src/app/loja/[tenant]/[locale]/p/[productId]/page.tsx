@@ -38,7 +38,15 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { tenant: tenantSlug, locale, productId } = await props.params;
   const result = await loadProduct(tenantSlug, productId);
-  if (!result) return {};
+  if (!result) {
+    // Produto inexistente/removido: nunca indexar (URL não é permanente —
+    // um productId reciclado ou um link velho não deveria aparecer no Google).
+    const tNotFound = await getTranslations({ locale, namespace: "notFound" });
+    return {
+      title: tNotFound("productTitle"),
+      robots: { index: false, follow: false },
+    };
+  }
 
   const localeTyped = locale as AppLocale;
   const { product } = result;

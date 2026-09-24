@@ -69,14 +69,14 @@ function writePlaceholderCover(
 type SeedCategory = { id: string; name: LocalizedText; order: number };
 
 const CATEGORIES: SeedCategory[] = [
+  { id: "bolos", name: { pt: "Bolos", en: "Cakes", es: "Pasteles" }, order: 0 },
+  { id: "tortas", name: { pt: "Tortas", en: "Pies", es: "Tartas" }, order: 1 },
+  { id: "croissants", name: { pt: "Croissants", en: "Croissants", es: "Croissants" }, order: 2 },
   {
     id: "brigadeiros",
     name: { pt: "Brigadeiros", en: "Brigadeiros", es: "Brigadeiros" },
-    order: 0,
+    order: 3,
   },
-  { id: "tortas", name: { pt: "Tortas", en: "Pies", es: "Tartas" }, order: 1 },
-  { id: "croissants", name: { pt: "Croissants", en: "Croissants", es: "Croissants" }, order: 2 },
-  { id: "bolos", name: { pt: "Bolos", en: "Cakes", es: "Pasteles" }, order: 3 },
 ];
 
 type SeedVariant = { id: string; name: LocalizedText; priceCents: number };

@@ -2,11 +2,12 @@ import { getTranslations } from "next-intl/server";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveLocalizedText } from "@/lib/localized-text";
 import type { Category } from "@/lib/schemas/category";
-import { pillClassName } from "@/components/ui/Pill";
+import { CategoryTabsNav } from "./CategoryTabsNav";
 
-// Pílulas de categoria (mockup 01), sticky no topo ao rolar. Sem
-// scroll-spy (destacar a aba conforme a seção visível) nesta etapa — só
-// âncoras (#categoria-<id>) + CSS sticky, sem JS.
+// Pílulas de categoria (mockup 01), sticky no topo ao rolar, com a aba ativa
+// destacada conforme a seção visível (CategoryTabsNav, client, via
+// IntersectionObserver — precisa do DOM, por isso fica num componente à
+// parte). Aqui só resolve os textos no servidor (i18n).
 export async function CategoryTabs({
   categories,
   locale,
@@ -19,20 +20,10 @@ export async function CategoryTabs({
   // locale explícito: ver o comentário em loja/[tenant]/[locale]/page.tsx.
   const t = await getTranslations({ locale, namespace: "common" });
 
-  return (
-    <nav
-      aria-label={t("categoriesNav")}
-      className="sticky top-0 z-10 -mx-4 flex gap-2 overflow-x-auto bg-bg px-4 py-3"
-    >
-      {categories.map((category, index) => (
-        <a
-          key={category.id}
-          href={`#categoria-${category.id}`}
-          className={pillClassName(index === 0, "shrink-0")}
-        >
-          {resolveLocalizedText(category.name, locale, category.i18nStatus)}
-        </a>
-      ))}
-    </nav>
-  );
+  const items = categories.map((category) => ({
+    id: category.id,
+    label: resolveLocalizedText(category.name, locale, category.i18nStatus),
+  }));
+
+  return <CategoryTabsNav items={items} navLabel={t("categoriesNav")} />;
 }
