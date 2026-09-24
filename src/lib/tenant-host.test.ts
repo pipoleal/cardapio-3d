@@ -61,6 +61,24 @@ describe("resolveTenantHost", () => {
       slug: "demo",
     });
   });
+
+  it("domínio extra (nip.io) funciona junto com o principal, pro teste no celular", () => {
+    const NIP_IO = "192.168.1.9.nip.io:3000";
+    expect(resolveTenantHost(NIP_IO, ROOT_DEV, [NIP_IO])).toEqual({ kind: "root" });
+    expect(resolveTenantHost(`demo.${NIP_IO}`, ROOT_DEV, [NIP_IO])).toEqual({
+      kind: "tenant",
+      slug: "demo",
+    });
+    // o domínio principal continua funcionando mesmo com o extra configurado
+    expect(resolveTenantHost("demo.localhost:3000", ROOT_DEV, [NIP_IO])).toEqual({
+      kind: "tenant",
+      slug: "demo",
+    });
+    // e um host que não bate com nenhum dos dois ainda cai pra root
+    expect(resolveTenantHost("demo.outro.nip.io:3000", ROOT_DEV, [NIP_IO])).toEqual({
+      kind: "root",
+    });
+  });
 });
 
 describe("resolveProxyRoute", () => {

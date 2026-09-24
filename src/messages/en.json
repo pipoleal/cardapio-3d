@@ -1,11 +1,34 @@
 {
-  "store": {
-    "eyebrow": "MENU",
-    "placeholderTitle": "The full menu ships in the next stage",
-    "placeholderBody": "This is the \"{name}\" store, already resolved by the right host and language. Categories, products and the WhatsApp button land in Stage 2."
-  },
   "notFound": {
     "title": "Store not found",
-    "description": "Check the address or go back to the home page."
+    "description": "Check the address or go back to the home page.",
+    "productTitle": "Product not found",
+    "productDescription": "This product no longer exists or the link is incorrect."
+  },
+  "menu": {
+    "eyebrow": "MENU",
+    "freshBannerTitle": "Fresh out of the oven",
+    "freshBannerSuffix": "still warm",
+    "badge3d": "3D",
+    "freshBadge": "Fresh",
+    "soldOutBadge": "Sold out today",
+    "contains": "Contains",
+    "mayContain": "May contain",
+    "whatsappCta": "Order on WhatsApp",
+    "whatsappGeneralMessage": "Hi! I found {name}'s menu and I'd like to place an order.",
+    "empty": "This menu doesn't have any products yet."
+  },
+  "product": {
+    "back": "Back",
+    "model3dBadge": "3D model",
+    "wholeOption": "Whole",
+    "sliceOption": "Slice",
+    "arButton": "View on your table (AR)",
+    "servesN": "serves {count}",
+    "sizeLabel": "Size",
+    "allergensTitle": "Allergens",
+    "mayContainTraces": "May contain traces of {list}.",
+    "whatsappCaption": "The message already includes the item's name and size.",
+    "defaultWhatsappTemplate": "Hi! I'd like to order {produto} ({variacao})"
   }
 }

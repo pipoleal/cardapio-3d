@@ -1,4 +1,3 @@
-import { Timestamp } from "firebase-admin/firestore";
 import { z } from "zod";
 import { localeSchema, localizedTextSchema } from "./common";
 
@@ -30,8 +29,10 @@ export const tenantSchema = z.object({
     products: z.number(),
   }),
   active: z.boolean(),
-  createdAt: z.instanceof(Timestamp),
-  updatedAt: z.instanceof(Timestamp),
+  // Date, não Timestamp: precisa ser serializável pra sair de uma função
+  // 'use cache' (lib/tenant.ts). Convertido em lib/firestore-dates.ts.
+  createdAt: z.date(),
+  updatedAt: z.date(),
 });
 
 export type Tenant = z.infer<typeof tenantSchema>;

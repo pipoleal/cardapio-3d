@@ -78,3 +78,16 @@ export function detectPreferredLocale(
 
   return routing.defaultLocale;
 }
+
+/**
+ * Só navegação de verdade (documento) deve atualizar o cookie de locale.
+ * O `<Link>` do LanguageSwitcher faz prefetch de /en e /es em segundo
+ * plano assim que a página carrega — sem essa checagem, o prefetch da
+ * pílula ES sobrescreve o cookie do usuário pra "es" sem ele ter clicado
+ * em nada. Mesmo truque do next-intl (ver syncCookie.js do pacote):
+ * `sec-fetch-dest` só falta em clientes que não são navegador (curl,
+ * scripts de teste), por isso ausência também conta como documento.
+ */
+export function shouldSyncLocaleCookie(secFetchDest: string | null): boolean {
+  return secFetchDest === null || secFetchDest === "document";
+}

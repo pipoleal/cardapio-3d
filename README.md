@@ -50,3 +50,36 @@ Os dados dos emuladores **não são persistidos** entre reinícios — depois de
 Quando for conectar num projeto Firebase de verdade (piloto em produção, por exemplo):
 `firebase login`, `firebase use --add`, preencha as chaves reais no `.env.local` e apague
 `NEXT_PUBLIC_USE_EMULATORS` (ou deixe `false`).
+
+## Rodando no celular
+
+Pra abrir o cardápio no celular (mesma Wi-Fi do PC), usa
+[nip.io](https://nip.io) — resolve `qualquercoisa.<seu-ip>.nip.io` pro próprio IP, sem mexer
+em roteador nem `hosts`.
+
+1. Descubra o IP local do PC na sua rede (`ipconfig`, procure o "Endereço IPv4" do Wi-Fi/Ethernet
+   — ex.: `192.168.1.9`).
+2. No `.env.local`, adicione (mantendo o `NEXT_PUBLIC_ROOT_DOMAIN` como está — os dois
+   funcionam ao mesmo tempo):
+   ```env
+   NEXT_PUBLIC_DEV_EXTRA_DOMAIN=192.168.1.9.nip.io:3000
+   ```
+3. Reinicie o `npm run dev` (mudança de env var/`next.config.ts` não recarrega sozinha).
+4. No celular, abra **http://demo.192.168.1.9.nip.io:3000** (troque pelo seu IP).
+
+Se não conectar, o Firewall do Windows pode estar bloqueando — na primeira vez que o
+`next dev` sobe, o Windows costuma perguntar se libera a rede privada; aceite. `demo.localhost`
+continua funcionando normalmente no PC ao mesmo tempo.
+
+## Verificação visual (Playwright)
+
+Screenshots do cardápio e da página de produto em 390px, pra comparar com os mockups em
+`docs/referencias-visuais/`. Não é um teste automatizado (não falha o CI) — é uma checagem
+manual pontual.
+
+```bash
+npx playwright install chromium   # uma vez só
+npm run screenshot                 # precisa de emuladores + seed + dev (ou build+start) rodando
+```
+
+Salva em `screenshots/` (fora do git — pasta local, cada um tira a sua).

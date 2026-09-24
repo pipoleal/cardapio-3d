@@ -1,4 +1,3 @@
-import { Timestamp } from "firebase-admin/firestore";
 import { z } from "zod";
 import { allergenSchema, localizedTextSchema } from "./common";
 
@@ -20,7 +19,7 @@ export const productModelSchema = z.object({
   route: z.enum(["photos_ai", "video_scan"]).optional(),
   costCents: z.number().optional(),
   fileSizeBytes: z.number().optional(),
-  updatedAt: z.instanceof(Timestamp).optional(),
+  updatedAt: z.date().optional(),
 });
 
 const i18nFieldStatusSchema = z.enum(["missing", "auto", "approved"]);
@@ -53,11 +52,13 @@ export const productSchema = z.object({
     })
     .optional(),
   available: z.boolean(),
-  freshFromOvenAt: z.instanceof(Timestamp).nullable().optional(),
+  // Date "crua" (não filtrada por FRESH_HOURS aqui) — "use cache" não pode
+  // fazer essa conta com Date.now(), fica pra renderização (lib/fresh.ts).
+  freshFromOvenAt: z.date().nullable().optional(),
   acceptsOrders: z.boolean(),
   order: z.number(),
-  createdAt: z.instanceof(Timestamp),
-  updatedAt: z.instanceof(Timestamp),
+  createdAt: z.date(),
+  updatedAt: z.date(),
 });
 
 export type Product = z.infer<typeof productSchema>;

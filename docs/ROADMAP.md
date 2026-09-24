@@ -19,11 +19,15 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [x] Script `scripts/seed.ts`: loja **demo** (confeitaria) com 4 categorias e 10 produtos, capas placeholder geradas em `public/demo/` e alergênicos. Rodar com `npm run seed` (emuladores no ar).
 
 ## Etapa 2 — Cardápio público (sem 3D ainda)
-- [ ] Página da loja **igual ao mockup 01**: cabeçalho, seletor de idioma, faixa "Saiu do forno agora", abas de categoria fixas, cards com selo 3D, estados "Saiu do forno" e "Esgotado hoje", CTA fixo do WhatsApp.
-- [ ] Página do produto **igual ao mockup 02** (ainda sem o viewer: usar a foto): preço, "serve N pessoas", tamanhos segmentados, card de alergênicos, CTA fixo.
-- [ ] Botão WhatsApp (`lib/whatsapp.ts`) com mensagem traduzida.
-- [ ] Tema da loja (cor primária) via CSS variables.
-- [ ] SEO: `generateMetadata`, Open Graph com a foto do produto.
+- [x] Página da loja **igual ao mockup 01**: cabeçalho, seletor de idioma, faixa "Saiu do forno agora", abas de categoria fixas (sem scroll-spy — só sticky/âncora), cards com selo 3D (condicional, nenhum produto tem modelo ainda), estados "Saiu do forno" e "Esgotado hoje", CTA fixo do WhatsApp.
+- [x] Página do produto **igual ao mockup 02** (ainda sem o viewer: usar a foto): preço, "serve N pessoas", tamanhos segmentados, card de alergênicos, CTA fixo. Botão AR escondido (não desabilitado) sem modelo.
+- [x] Botão WhatsApp (`lib/whatsapp.ts`) com mensagem traduzida, com testes vitest.
+- [x] Tema da loja (cor primária) via CSS variables (aplicado em cada página, não no root layout — ver nota sobre `notFound()` em `docs/DECISOES.md`).
+- [x] SEO: `generateMetadata`, Open Graph com a foto do produto/loja, `html lang` dinâmico (root layout próprio da loja, separado de `(main)`).
+- [x] Cache do cardápio: `cacheComponents` + `'use cache'`/`cacheTag('tenant:<id>')`/`cacheLife('tenant', 60s)` em `lib/tenant.ts` e `lib/menu.ts`, prontos pra Etapa 3 invalidar com `revalidateTag`.
+- [x] `/loja/*` bloqueado no domínio raiz (404); URLs públicas nunca expõem `/loja/<slug>/...`.
+- [x] Teste no celular via nip.io (`NEXT_PUBLIC_DEV_EXTRA_DOMAIN`) documentado no README.
+- [x] Verificação visual com Playwright (`npm run screenshot`) comparada aos mockups 01/02.
 
 ## Etapa 3 — Painel do lojista
 - [ ] Layout do painel **igual aos mockups 04/05**: sidebar escura com seletor de loja e navegação.

@@ -1,11 +1,34 @@
 {
-  "store": {
-    "eyebrow": "MENÚ",
-    "placeholderTitle": "El menú completo llega en la próxima etapa",
-    "placeholderBody": "Esta es la tienda \"{name}\", ya resuelta con el host y el idioma correctos. Categorías, productos y el botón de WhatsApp llegan en la Etapa 2."
-  },
   "notFound": {
     "title": "Tienda no encontrada",
-    "description": "Revisa la dirección o vuelve a la página de inicio."
+    "description": "Revisa la dirección o vuelve a la página de inicio.",
+    "productTitle": "Producto no encontrado",
+    "productDescription": "Este producto ya no existe o el enlace es incorrecto."
+  },
+  "menu": {
+    "eyebrow": "MENÚ",
+    "freshBannerTitle": "Recién salido del horno",
+    "freshBannerSuffix": "calentito",
+    "badge3d": "3D",
+    "freshBadge": "Recién horneado",
+    "soldOutBadge": "Agotado hoy",
+    "contains": "Contiene",
+    "mayContain": "Puede contener",
+    "whatsappCta": "Pedir por WhatsApp",
+    "whatsappGeneralMessage": "¡Hola! Vi el menú de {name} y quiero hacer un pedido.",
+    "empty": "Este menú todavía no tiene productos."
+  },
+  "product": {
+    "back": "Volver",
+    "model3dBadge": "Modelo 3D",
+    "wholeOption": "Entero",
+    "sliceOption": "Porción",
+    "arButton": "Ver en tu mesa (AR)",
+    "servesN": "sirve {count} personas",
+    "sizeLabel": "Tamaño",
+    "allergensTitle": "Alérgenos",
+    "mayContainTraces": "Puede contener trazas de {list}.",
+    "whatsappCaption": "El mensaje ya incluye el nombre y el tamaño.",
+    "defaultWhatsappTemplate": "¡Hola! Quiero pedir {produto} ({variacao})"
   }
 }

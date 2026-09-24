@@ -1,11 +1,34 @@
 {
-  "store": {
-    "eyebrow": "CARDÁPIO",
-    "placeholderTitle": "O cardápio completo chega na próxima etapa",
-    "placeholderBody": "Esta é a loja \"{name}\", já resolvida pelo host e pelo idioma certos. Categorias, produtos e o botão do WhatsApp entram na Etapa 2."
-  },
   "notFound": {
     "title": "Loja não encontrada",
-    "description": "Confira o endereço ou volte para a página inicial."
+    "description": "Confira o endereço ou volte para a página inicial.",
+    "productTitle": "Produto não encontrado",
+    "productDescription": "Esse produto não existe mais ou o link está incorreto."
+  },
+  "menu": {
+    "eyebrow": "CARDÁPIO",
+    "freshBannerTitle": "Saiu do forno agora",
+    "freshBannerSuffix": "quentinho",
+    "badge3d": "3D",
+    "freshBadge": "Saiu do forno",
+    "soldOutBadge": "Esgotado hoje",
+    "contains": "Contém",
+    "mayContain": "Pode conter",
+    "whatsappCta": "Encomendar pelo WhatsApp",
+    "whatsappGeneralMessage": "Olá! Vim pelo cardápio da {name} e quero fazer um pedido.",
+    "empty": "Esse cardápio ainda não tem produtos."
+  },
+  "product": {
+    "back": "Voltar",
+    "model3dBadge": "Modelo 3D",
+    "wholeOption": "Inteiro",
+    "sliceOption": "Fatia",
+    "arButton": "Ver na sua mesa (AR)",
+    "servesN": "serve {count} pessoas",
+    "sizeLabel": "Tamanho",
+    "allergensTitle": "Alergênicos",
+    "mayContainTraces": "Pode conter traços de {list}.",
+    "whatsappCaption": "A mensagem já vai com o nome do bolo e o tamanho.",
+    "defaultWhatsappTemplate": "Olá! Quero encomendar {produto} ({variacao})"
   }
 }

@@ -4,10 +4,16 @@ import {
   buildLojaRewritePath,
   detectPreferredLocale,
   resolveLocaleForPath,
+  shouldSyncLocaleCookie,
 } from "@/i18n/resolve-locale";
 import { resolveProxyRoute } from "@/lib/tenant-host";
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
+// Domínio extra pra testar no celular em dev (ex.: nip.io) sem perder o
+// demo.localhost — ver README, "Rodando no celular".
+const EXTRA_DOMAINS = process.env.NEXT_PUBLIC_DEV_EXTRA_DOMAIN
+  ? [process.env.NEXT_PUBLIC_DEV_EXTRA_DOMAIN]
+  : [];
 const LOCALE_COOKIE = "NEXT_LOCALE";
 
 /**
@@ -31,12 +37,20 @@ export function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? request.nextUrl.host;
   const { pathname, search } = request.nextUrl;
 
-  const route = resolveProxyRoute(host, pathname, ROOT_DOMAIN);
+  const route = resolveProxyRoute(host, pathname, ROOT_DOMAIN, EXTRA_DOMAINS);
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete("x-tenant");
 
   if (route.kind === "site") {
+    // /loja/* só existe via rewrite (subdomínio de loja). Acesso direto pelo
+    // domínio raiz não deve funcionar — rewrite pra um path que não bate com
+    // nenhuma rota real, cai no 404 padrão do Next.
+    if (pathname === "/loja" || pathname.startsWith("/loja/")) {
+      return NextResponse.rewrite(new URL("/__not-found__", request.url), {
+        request: { headers: requestHeaders },
+      });
+    }
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
@@ -58,7 +72,9 @@ export function proxy(request: NextRequest) {
       localeResolution.pathWithoutLocale,
     );
     const response = NextResponse.redirect(new URL(externalPath + search, request.url));
-    response.cookies.set(LOCALE_COOKIE, localeResolution.locale, { path: "/", sameSite: "lax" });
+    if (shouldSyncLocaleCookie(request.headers.get("sec-fetch-dest"))) {
+      response.cookies.set(LOCALE_COOKIE, localeResolution.locale, { path: "/", sameSite: "lax" });
+    }
     return response;
   }
 
@@ -71,7 +87,10 @@ export function proxy(request: NextRequest) {
     request: { headers: requestHeaders },
   });
 
-  if (request.cookies.get(LOCALE_COOKIE)?.value !== localeResolution.locale) {
+  if (
+    shouldSyncLocaleCookie(request.headers.get("sec-fetch-dest")) &&
+    request.cookies.get(LOCALE_COOKIE)?.value !== localeResolution.locale
+  ) {
     response.cookies.set(LOCALE_COOKIE, localeResolution.locale, { path: "/", sameSite: "lax" });
   }
 
@@ -79,5 +98,11 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"],
+  // Qualquer path com "." no último segmento é arquivo estático (SVG/PNG de
+  // public/, favicon.ico, sitemap.xml, manifest.json...), nunca uma rota da
+  // aplicação (essas nunca têm extensão) — exclui todos de uma vez, em vez
+  // de manter uma lista fixa que quebra a cada novo asset (bug real:
+  // /demo/<produto>.svg pelo subdomínio da loja virava 404 porque a lista
+  // antiga só excluía favicon.ico/sitemap.xml/robots.txt).
+  matcher: ["/((?!api|_next/static|_next/image|.*\\..*).*)"],
 };
