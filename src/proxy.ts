@@ -97,7 +97,13 @@ export function proxy(request: NextRequest) {
     const rootOrigin = `${ROOT_DOMAIN.includes(":") ? "http" : "https"}://${ROOT_DOMAIN}`;
     const restPath = pathname.replace(/^\/painel/, "");
     const target = `${rootOrigin}/painel/${route.slug}${restPath}${search}`;
-    return redirectViaHtml(target);
+    // O bug do comentário de `redirectViaHtml` é só do `next dev` (testado
+    // empiricamente: `next start` devolve um `Location` absoluto correto,
+    // e a Vercel roteia na borda respeitando o `Host` de verdade — nunca
+    // passa por esse código de relativização self-hosted). Ver docs/DECISOES.md #17.
+    return process.env.NODE_ENV === "development"
+      ? redirectViaHtml(target)
+      : NextResponse.redirect(target);
   }
 
   const isDocNav = isDocumentNavigation(request.headers.get("sec-fetch-dest"));

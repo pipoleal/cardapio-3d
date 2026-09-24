@@ -2,9 +2,9 @@
   "firestore": { "rules": "firebase/firestore.rules", "indexes": "firebase/firestore.indexes.json" },
   "storage": { "rules": "firebase/storage.rules" },
   "emulators": {
-    "auth": { "port": 9099 },
-    "firestore": { "port": 8080 },
-    "storage": { "port": 9199 },
-    "ui": { "enabled": true, "port": 4001 }
+    "auth": { "port": 9099, "host": "0.0.0.0" },
+    "firestore": { "port": 8080, "host": "0.0.0.0" },
+    "storage": { "port": 9199, "host": "0.0.0.0" },
+    "ui": { "enabled": true, "port": 4001, "host": "0.0.0.0" }
   }
 }

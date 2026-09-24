@@ -2,6 +2,7 @@ import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import type { AppLocale } from "@/i18n/routing";
 import type { Product } from "@/lib/schemas/product";
+import { ProductViewerLazy } from "./ProductViewerLazy";
 
 type ProductMediaProps = {
   product: Product;
@@ -11,11 +12,9 @@ type ProductMediaProps = {
 };
 
 /**
- * Moldura do viewer (mockup 02: 24px de raio, fundo escuro). Por enquanto
- * mostra a foto de capa no lugar do `<model-viewer>` — isso é a Etapa 4.
- * O selo "Modelo 3D" só aparece quando `hasModel` for true; a dica
- * "arraste para girar" fica de fora enquanto não há 3D de verdade (seria
- * enganosa numa foto estática).
+ * Moldura do viewer (mockup 02: 24px de raio, fundo escuro). Mostra o
+ * `<model-viewer>` quando há modelo pronto (`hasModel`); senão, cai pra
+ * foto de capa. O selo "Modelo 3D" só aparece com modelo de verdade.
  */
 export async function ProductMedia({ product, name, hasModel, locale }: ProductMediaProps) {
   // locale explícito: ver o comentário em loja/[tenant]/[locale]/page.tsx.
@@ -23,15 +22,24 @@ export async function ProductMedia({ product, name, hasModel, locale }: ProductM
 
   return (
     <div className="relative aspect-square overflow-hidden rounded-[24px] bg-bg-panel">
-      {product.coverImage && (
-        <Image
-          src={product.coverImage.url}
+      {hasModel && product.model.glbUrl ? (
+        <ProductViewerLazy
+          glbUrl={product.model.glbUrl}
+          usdzUrl={product.model.usdzUrl}
+          posterUrl={product.model.posterUrl}
           alt={name}
-          fill
-          sizes="(max-width: 640px) 100vw, 480px"
-          className="object-cover"
-          priority
         />
+      ) : (
+        product.coverImage && (
+          <Image
+            src={product.coverImage.url}
+            alt={name}
+            fill
+            sizes="(max-width: 640px) 100vw, 480px"
+            className="object-cover"
+            priority
+          />
+        )
       )}
       {hasModel && (
         <span className="absolute top-3 left-3 rounded-full bg-ink px-3 py-1 text-xs font-semibold text-surface">

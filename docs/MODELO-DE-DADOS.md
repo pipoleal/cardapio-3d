@@ -104,7 +104,7 @@ Reserva única de subdomínio.
 ```ts
 {
   productId: string;
-  provider: "meshy" | "tripo";
+  provider: "meshy" | "fake";       // "fake" = provider de dev, sem custo (lib/three-d/fake.ts)
   providerTaskId: string;
   mode: "single" | "multi";         // 1 foto ou várias (até 4)
   inputPaths: string[];             // Storage
@@ -115,6 +115,7 @@ Reserva única de subdomínio.
   error?: string;
   createdBy: string;                // uid
   createdAt: Timestamp; finishedAt?: Timestamp;
+  finalizing?: boolean;             // trava de transação — só quem vira false→true copia pro Storage (docs/PIPELINE-3D.md, "Idempotência")
 }
 ```
 
@@ -147,10 +148,11 @@ Reserva única de subdomínio.
 ```
 tenants/{tenantId}/branding/logo.webp, cover.webp
 tenants/{tenantId}/products/{productId}/cover.webp
-tenants/{tenantId}/products/{productId}/captures/{jobId}/{n}.jpg
-tenants/{tenantId}/products/{productId}/models/{jobId}.glb
-tenants/{tenantId}/products/{productId}/models/{jobId}.usdz
-tenants/{tenantId}/products/{productId}/models/{jobId}-poster.webp
+tenants/{tenantId}/products/{productId}/captures/{captureId}/{pose}.webp   # captureId: gerado no cliente (crypto.randomUUID()), não é o jobId
+tenants/{tenantId}/products/{productId}/models/model.{glb|gltf}
+tenants/{tenantId}/products/{productId}/models/model.usdz
+tenants/{tenantId}/products/{productId}/models/poster.{ext}
 ```
 
 Leitura pública de `branding/`, `cover.webp` e `models/`; `captures/` só para o dono e o servidor.
+`models/` usa nome fixo (não por jobId) — cada geração nova sobrescreve a anterior, mesmo raciocínio de `cover.webp`.

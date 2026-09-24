@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { AllergensCard } from "@/components/menu/AllergensCard";
 import { ProductPurchasePanel } from "@/components/menu/ProductPurchasePanel";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { ArButton } from "@/components/viewer/ArButton";
 import { ProductMedia } from "@/components/viewer/ProductMedia";
 import { buildExternalPath } from "@/i18n/resolve-locale";
 import type { AppLocale } from "@/i18n/routing";
@@ -169,15 +170,7 @@ export default async function ProductPage(
 
       {/* "Ver na sua mesa (AR)" só existe quando há modelo de verdade — bem
           escondido, não desabilitado (um botão cinza pareceria quebrado). */}
-      {hasModel && (
-        <button
-          type="button"
-          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-cta border border-ink text-sm font-medium text-ink"
-        >
-          <ArIcon />
-          {tProduct("arButton")}
-        </button>
-      )}
+      {hasModel && <ArButton label={tProduct("arButton")} />}
 
       <div className="flex flex-col gap-1">
         <h1 className="font-heading text-2xl font-semibold text-ink">{name}</h1>
@@ -229,20 +222,6 @@ function BackIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function ArIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3 3 7.5 12 12l9-4.5L12 3Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <path d="M3 7.5V16l9 5V12M21 7.5V16l-9 5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }

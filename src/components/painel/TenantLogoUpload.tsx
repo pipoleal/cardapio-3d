@@ -6,6 +6,7 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { setTenantLogo } from "@/lib/actions/tenant";
 import { storage } from "@/lib/firebase/client";
 import { compressImage } from "@/lib/image-compress";
+import { toPublicStorageUrl } from "@/lib/storage-url";
 
 export function TenantLogoUpload({ tenantId, logoUrl }: { tenantId: string; logoUrl: string | undefined }) {
   const router = useRouter();
@@ -23,7 +24,7 @@ export function TenantLogoUpload({ tenantId, logoUrl }: { tenantId: string; logo
       const path = `tenants/${tenantId}/branding/logo.webp`;
       const fileRef = storageRef(storage, path);
       await uploadBytes(fileRef, blob, { contentType: "image/webp" });
-      const url = await getDownloadURL(fileRef);
+      const url = toPublicStorageUrl(await getDownloadURL(fileRef));
       await setTenantLogo(tenantId, url);
       router.refresh();
     } finally {

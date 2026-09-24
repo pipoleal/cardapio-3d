@@ -4,7 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
-import { allergenSchema } from "@/lib/schemas/common";
+import { allergenSchema, mediaUrlSchema } from "@/lib/schemas/common";
 import { assertTenantOwner } from "./guard";
 
 // Espelha os campos do mockup 05 (Informações): nome, categoria, preço,
@@ -137,7 +137,7 @@ export async function setProductFresh(tenantId: string, productId: string, fresh
 }
 
 const coverInputSchema = z.object({
-  url: z.string().url(),
+  url: mediaUrlSchema,
   path: z.string().min(1),
   w: z.number().int().positive(),
   h: z.number().int().positive(),

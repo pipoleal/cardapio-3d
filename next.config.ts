@@ -31,13 +31,32 @@ const nextConfig: NextConfig = {
     // sem isso, o next/image recusa o host e QUEBRA a página inteira do
     // cardápio pro cliente final (achado testando o upload de capa).
     // Sem `search`: o token de download (`?alt=media&token=...`) muda a
-    // cada arquivo, não dá pra fixar.
+    // cada arquivo, não dá pra fixar. Em dev, as URLs já vêm reescritas
+    // pra `/__storage/...` (mesma origem — ver rewrites() e
+    // lib/storage-url.ts), então o remotePattern de 127.0.0.1 é só um
+    // reforço pra qualquer URL que escape desse helper.
     remotePatterns: [
       ...(process.env.NEXT_PUBLIC_USE_EMULATORS === "true"
         ? [{ protocol: "http" as const, hostname: "127.0.0.1", port: "9199", pathname: "/v0/b/**" }]
         : []),
       { protocol: "https" as const, hostname: "firebasestorage.googleapis.com", pathname: "/v0/b/**" },
     ],
+    // Next 16: caminho local com query string exige `localPatterns` (senão
+    // o next/image responde 400 e DERRUBA a página inteira do cardápio,
+    // mesmo risco da decisão nº 18) — cobre as URLs de Storage já
+    // reescritas pra `/__storage/...` (mesma origem, ver rewrites() acima).
+    // Sem `search` pelo mesmo motivo do remotePattern: o token muda por arquivo.
+    ...(process.env.NEXT_PUBLIC_USE_EMULATORS === "true"
+      ? { localPatterns: [{ pathname: "/__storage/**" }] }
+      : {}),
+  },
+  async rewrites() {
+    // Só em dev com emuladores: serve os arquivos do Storage emulator pela
+    // MESMA origem do Next, pra não ter mixed content no HTTPS do celular
+    // nem URL com "127.0.0.1"/IP que só o computador de dev alcança — ver
+    // lib/storage-url.ts e docs/DECISOES.md.
+    if (process.env.NEXT_PUBLIC_USE_EMULATORS !== "true") return [];
+    return [{ source: "/__storage/:path*", destination: "http://127.0.0.1:9199/:path*" }];
   },
 };
 

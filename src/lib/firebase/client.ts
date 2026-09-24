@@ -21,13 +21,19 @@ export const storage = getStorage(firebaseApp);
 // Evita reconectar aos emuladores a cada hot-reload do Next.js em dev.
 const globalForFirebase = globalThis as unknown as { __firebaseEmulatorsConnected?: boolean };
 
+// "127.0.0.1" só funciona no PRÓPRIO computador — no celular (mesma rede),
+// 127.0.0.1 é o celular, não o servidor de dev. NEXT_PUBLIC_EMULATOR_HOST
+// (ex.: 192.168.1.9, o mesmo IP do NEXT_PUBLIC_DEV_EXTRA_DOMAIN) deixa
+// testar auth/firestore/storage do celular — ver README, "Rodando no celular".
+const emulatorHost = process.env.NEXT_PUBLIC_EMULATOR_HOST ?? "127.0.0.1";
+
 if (
   process.env.NEXT_PUBLIC_USE_EMULATORS === "true" &&
   typeof window !== "undefined" &&
   !globalForFirebase.__firebaseEmulatorsConnected
 ) {
-  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-  connectFirestoreEmulator(db, "127.0.0.1", 8080);
-  connectStorageEmulator(storage, "127.0.0.1", 9199);
+  connectAuthEmulator(auth, `http://${emulatorHost}:9099`, { disableWarnings: true });
+  connectFirestoreEmulator(db, emulatorHost, 8080);
+  connectStorageEmulator(storage, emulatorHost, 9199);
   globalForFirebase.__firebaseEmulatorsConnected = true;
 }

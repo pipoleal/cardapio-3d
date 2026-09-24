@@ -4,7 +4,9 @@
  * "Segurança": compressão no cliente, ≈2048px, qualidade 0,85).
  */
 export async function compressImage(
-  file: File,
+  // Blob, não só File — a captura ao vivo (canvas.toBlob) produz um Blob
+  // puro, sem nome/data de arquivo, mas createImageBitmap aceita os dois.
+  file: Blob,
   { maxSize = 2048, quality = 0.85 }: { maxSize?: number; quality?: number } = {},
 ): Promise<{ blob: Blob; width: number; height: number }> {
   const bitmap = await createImageBitmap(file);

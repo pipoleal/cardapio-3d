@@ -48,6 +48,18 @@ export type Origin = z.infer<typeof originSchema>;
 export const whatsappModeSchema = z.enum(["discreet", "prominent", "off"]);
 export type WhatsappMode = z.infer<typeof whatsappModeSchema>;
 
+/**
+ * URL de mídia (capa, logo, GLB/USDZ...) — normalmente uma URL completa,
+ * mas em dev com emulador vira um caminho relativo `/__storage/...`
+ * (mesma origem, ver lib/storage-url.ts, evita mixed content no HTTPS do
+ * celular). `z.string().url()` sozinho rejeitaria o caminho relativo.
+ */
+export const mediaUrlSchema = z
+  .string()
+  .refine((value) => value.startsWith("/") || z.string().url().safeParse(value).success, {
+    message: "precisa ser uma URL válida ou um caminho relativo (começando com /)",
+  });
+
 export const allergenSchema = z.enum([
   "gluten",
   "lactose",

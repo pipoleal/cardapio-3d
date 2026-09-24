@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:https": "next dev --experimental-https --experimental-https-key ./certs/dev-key.pem --experimental-https-cert ./certs/dev-cert.pem",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -18,7 +19,8 @@
     "screenshot-painel": "tsx --env-file=.env.local scripts/screenshot-painel.ts",
     "check-translations": "tsx scripts/check-translations.ts",
     "check-origin": "tsx --env-file=.env.local scripts/check-origin.ts",
-    "check-painel": "tsx --env-file=.env.local scripts/check-painel.ts"
+    "check-painel": "tsx --env-file=.env.local scripts/check-painel.ts",
+    "check-captura": "tsx --env-file=.env.local scripts/check-captura.ts"
   },
   "dependencies": {
     "@google-cloud/translate": "^10.1.0",

@@ -6,6 +6,7 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { setProductCover } from "@/lib/actions/products";
 import { storage } from "@/lib/firebase/client";
 import { compressImage } from "@/lib/image-compress";
+import { toPublicStorageUrl } from "@/lib/storage-url";
 
 export function ProductCoverUpload({
   tenantId,
@@ -34,7 +35,7 @@ export function ProductCoverUpload({
       const path = `tenants/${tenantId}/products/${productId}/cover.webp`;
       const fileRef = storageRef(storage, path);
       await uploadBytes(fileRef, blob, { contentType: "image/webp" });
-      const url = await getDownloadURL(fileRef);
+      const url = toPublicStorageUrl(await getDownloadURL(fileRef));
       await setProductCover(tenantId, productId, { url, path, w: width, h: height });
       router.refresh();
     } catch {

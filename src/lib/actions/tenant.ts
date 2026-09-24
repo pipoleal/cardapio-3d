@@ -4,7 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
-import { localeSchema, whatsappModeSchema } from "@/lib/schemas/common";
+import { localeSchema, mediaUrlSchema, whatsappModeSchema } from "@/lib/schemas/common";
 import { assertTenantOwner } from "./guard";
 
 // Espelha "Configurações" (mockup, nav do painel): nome, WhatsApp + modo,
@@ -54,7 +54,7 @@ export async function updateTenantSettings(tenantId: string, input: TenantSettin
 /** Chamado depois do upload direto pro Storage (SDK web) — só persiste a URL. */
 export async function setTenantLogo(tenantId: string, url: string): Promise<void> {
   const { tenant } = await assertTenantOwner(tenantId);
-  const parsedUrl = z.string().url().parse(url);
+  const parsedUrl = mediaUrlSchema.parse(url);
 
   await adminDb
     .collection("tenants")
