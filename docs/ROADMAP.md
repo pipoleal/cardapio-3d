@@ -5,11 +5,11 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 ## Etapa 0 — Setup
 - [x] Criar o app Next.js em uma pasta temporária e **mover para a raiz** (o create-next-app recusa pasta com arquivos):
       `npx create-next-app@latest tmp_scaffold --ts --tailwind --eslint --app --src-dir --import-alias "@/*"` (nome não pode começar com `_`, por restrição do npm) → mover o conteúdo de `tmp_scaffold/` para a raiz, mesclando `src/` e `.gitignore`, sem apagar `CLAUDE.md`, `docs/` e `firebase/`. Descartar o `AGENTS.md`/`CLAUDE.md` gerados pelo create-next-app (mantém só o `CLAUDE.md` do projeto).
-- [ ] `git init` + primeiro commit.
-- [ ] Dependências: `firebase firebase-admin next-intl zod @google/model-viewer server-only` · dev: `vitest @firebase/rules-unit-testing`.
-- [ ] Scripts `typecheck` e `test`; Prettier.
-- [ ] `firebase init` (Firestore, Storage, Emulators) apontando para os arquivos de `firebase/`.
-- [ ] `lib/firebase/client.ts` e `lib/firebase/admin.ts` (usando os emuladores quando `NEXT_PUBLIC_USE_EMULATORS=true`).
+- [x] `git init` + primeiro commit. Repositório privado criado no GitHub (`pipoleal/cardapio-3d`) e push da `main`.
+- [x] Dependências: `firebase firebase-admin next-intl zod @google/model-viewer server-only` · dev: `vitest @firebase/rules-unit-testing`.
+- [x] Scripts `typecheck`, `test` e `format`; Prettier (`.prettierrc.json` + `.prettierignore`).
+- [x] Config do `firebase init` (Firestore, Storage, Emulators) já existia em `firebase.json`/`firebase/*.rules`; testado com `firebase emulators:start --project demo-cardapio` (Auth, Firestore e Storage sobem OK). `firebase login` + vincular um projeto real ficam como passo manual (ver resumo da Etapa 0).
+- [x] `lib/firebase/client.ts` e `lib/firebase/admin.ts` (usando os emuladores quando `NEXT_PUBLIC_USE_EMULATORS=true`).
 
 ## Etapa 1 — Multi-tenant + i18n
 - [ ] `proxy.ts`: host → tenant; rotas do site × loja × painel; locale.
