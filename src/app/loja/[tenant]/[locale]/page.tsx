@@ -1,5 +1,6 @@
 import { Suspense, type CSSProperties } from "react";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
@@ -12,7 +13,9 @@ import type { AppLocale } from "@/i18n/routing";
 import { isFresh } from "@/lib/fresh";
 import { resolveLocalizedText } from "@/lib/localized-text";
 import { getMenu } from "@/lib/menu";
+import { ORIGIN_DIRECT, shouldShowWhatsappCta } from "@/lib/origin";
 import type { Category } from "@/lib/schemas/category";
+import type { WhatsappMode } from "@/lib/schemas/common";
 import type { Product } from "@/lib/schemas/product";
 import { getTenantBySlug } from "@/lib/tenant";
 import { buildWhatsappUrl } from "@/lib/whatsapp";
@@ -88,10 +91,37 @@ export default async function LojaPage(props: PageProps<"/loja/[tenant]/[locale]
       )}
 
       {tenant.whatsapp && (
-        <WhatsAppCta href={generalWhatsappUrl} label={t("whatsappCta")} />
+        <Suspense fallback={null}>
+          <WhatsappCtaSection
+            href={generalWhatsappUrl}
+            label={t("whatsappCta")}
+            whatsappMode={tenant.whatsappMode}
+          />
+        </Suspense>
       )}
     </div>
   );
+}
+
+/**
+ * `headers()` (pra ler `x-origin`, setado pelo proxy) é uma runtime API —
+ * sob Cache Components, só pode ficar fora de `<Suspense>` em rotas com
+ * `instant = false` (não é o caso desta página, que tem shell estático).
+ * Mesmo padrão de isolamento do MenuSections, mas sem precisar de
+ * `connection()` (headers() já basta pra sinalizar "isso é por request").
+ */
+async function WhatsappCtaSection({
+  href,
+  label,
+  whatsappMode,
+}: {
+  href: string;
+  label: string;
+  whatsappMode: WhatsappMode;
+}) {
+  const origin = (await headers()).get("x-origin") ?? ORIGIN_DIRECT;
+  if (!shouldShowWhatsappCta(origin, whatsappMode)) return null;
+  return <WhatsAppCta href={href} label={label} />;
 }
 
 /**

@@ -13,7 +13,8 @@
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
     "emulators": "firebase emulators:start --project demo-cardapio",
     "screenshot": "tsx scripts/screenshot.ts",
-    "check-translations": "tsx scripts/check-translations.ts"
+    "check-translations": "tsx scripts/check-translations.ts",
+    "check-origin": "tsx scripts/check-origin.ts"
   },
   "dependencies": {
     "@google/model-viewer": "^4.3.1",

@@ -317,6 +317,10 @@ async function seed() {
       description: TENANT_DESCRIPTION,
       whatsapp: "5511999999999",
       whatsappTemplate: TENANT_WHATSAPP_TEMPLATE,
+      // "direct": loja demo é online, CTA normal. Origem presencial
+      // (?origem=loja/mesa/vitrine) força "discreet" mesmo assim — ver
+      // lib/origin.ts.
+      whatsappMode: "direct",
       openingHours: TENANT_OPENING_HOURS,
       i18nStatus: APPROVED_I18N_STATUS,
       locales: ["pt", "en", "es"],

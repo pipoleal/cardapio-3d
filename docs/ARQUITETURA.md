@@ -57,10 +57,24 @@
 - A loja escolhe quais idiomas mostrar (`tenant.locales`). Seletor de idioma no topo do cardápio.
 - **Tradução automática com aprovação (já no piloto, como no mockup 05):** `POST /api/translate` (servidor) preenche en/es e marca `i18nStatus = "auto"`; o lojista revisa e clica em "Aprovar tradução" (`"approved"`). O cliente só vê traduções aprovadas. Provedor sugerido: Google Cloud Translation (tem cota grátis mensal; confira os limites atuais) atrás de uma interface `Translator`.
 
+## Origem da visita e modo do WhatsApp
+
+Pra saber se o cliente já está na loja (e por isso pode simplesmente pedir no balcão) ou está vendo o cardápio de longe (Instagram, link direto), o `proxy.ts` resolve uma **origem** por request (`src/lib/origin.ts`):
+
+1. `?origem=<slug>` na URL (QR code do balcão → `loja`, bio do Instagram → `instagram`, e qualquer outro slug livre: `mesa`, `vitrine`...). Se presente e válido, vira cookie de sessão `c3d_origin` e a URL é redirecionada pra ela mesma **sem** o parâmetro (limpa, pra não propagar quando o cliente compartilha o link) — só numa navegação de documento de verdade (`Sec-Fetch-Dest: document`), igual ao cookie de locale.
+2. Sem `?origem=` na URL: usa o cookie `c3d_origin`, se existir.
+3. Sem cookie: heurística pelo User-Agent — navegador interno do Instagram → `instagram`; senão → `direto`.
+
+O proxy expõe o resultado pras páginas via header `x-origin` (recalculado a cada request, nunca confia num `x-origin` vindo do cliente — mesmo padrão do `x-tenant`).
+
+**Regra de exibição do CTA do WhatsApp:** origens presenciais (`loja`, `mesa`, `vitrine` — lista configurável em `PRESENCIAL_ORIGINS`) sempre escondem o botão fixo do WhatsApp, não importa a configuração da loja. Pra `instagram`/`direto`, vale `tenant.whatsappMode` (`"discreet"` esconde, `"direct"` mostra).
+
+**Etapa 3 (painel):** a tela de QR Code deve gerar um QR com `?origem=loja` e mostrar o link da bio do Instagram com `?origem=instagram` (botão de copiar).
+
 ## Analytics (custo zero)
 
 - **Eventos próprios** via `POST /api/track` → incremento em `tenants/{id}/stats/{AAAA-MM-DD}` usando `FieldValue.increment` (um documento por dia, com campos agregados):
-  `menu_view`, `product_view.{productId}`, `model_open.{productId}`, `ar_open.{productId}`, `whatsapp_click.{productId}`, `locale.{pt|en|es}`.
+  `menu_view`, `product_view.{productId}`, `model_open.{productId}`, `ar_open.{productId}`, `whatsapp_click.{productId}`, `locale.{pt|en|es}`, `origin.{loja|mesa|vitrine|instagram|direto|...}` (Etapa 5 — contagem de visitas por origem, ver seção acima).
 - Não gravar dado pessoal (LGPD). Sem cookies de rastreamento: o banner de cookies não é necessário para isso.
 - Proteção básica: rate limit por IP em memória + `sendBeacon`; ignorar bots pelo user-agent.
 - **Painel → Estatísticas:** gráfico dos últimos 30 dias + top produtos + taxa "abriu o 3D → clicou no WhatsApp".

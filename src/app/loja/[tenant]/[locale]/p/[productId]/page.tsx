@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { getTranslations } from "next-intl/server";
@@ -10,6 +11,7 @@ import { buildExternalPath } from "@/i18n/resolve-locale";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveLocalizedText } from "@/lib/localized-text";
 import { getMenu } from "@/lib/menu";
+import { ORIGIN_DIRECT, shouldShowWhatsappCta } from "@/lib/origin";
 import { getTenantBySlug } from "@/lib/tenant";
 import { buildTenantOrigin } from "@/lib/tenant-host";
 
@@ -114,6 +116,12 @@ export default async function ProductPage(
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
   const productUrl = `${buildTenantOrigin(tenantSlug, rootDomain)}${buildExternalPath(localeTyped, `/p/${product.id}`)}`;
 
+  // headers() direto (sem Suspense extra) só é seguro aqui porque a página
+  // já é `instant = false` — não tem shell estático protegido, então não
+  // há o que "vazar" pro prerender bloqueando.
+  const origin = (await headers()).get("x-origin") ?? ORIGIN_DIRECT;
+  const showWhatsappCta = product.acceptsOrders && shouldShowWhatsappCta(origin, tenant.whatsappMode);
+
   return (
     <div
       className="mx-auto flex max-w-md flex-col gap-5 px-4 pt-4 pb-32"
@@ -161,7 +169,7 @@ export default async function ProductPage(
         productUrl={productUrl}
         whatsappCtaLabel={t("whatsappCta")}
         whatsappCaption={tProduct("whatsappCaption")}
-        acceptsOrders={product.acceptsOrders}
+        showWhatsappCta={showWhatsappCta}
       />
 
       {description && <p className="text-sm text-muted">{description}</p>}

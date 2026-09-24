@@ -4,8 +4,9 @@ import {
   buildLojaRewritePath,
   detectPreferredLocale,
   resolveLocaleForPath,
-  shouldSyncLocaleCookie,
 } from "@/i18n/resolve-locale";
+import { isDocumentNavigation } from "@/lib/http";
+import { isValidOrigin, ORIGIN_COOKIE, resolveOrigin } from "@/lib/origin";
 import { resolveProxyRoute } from "@/lib/tenant-host";
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
@@ -15,32 +16,42 @@ const EXTRA_DOMAINS = process.env.NEXT_PUBLIC_DEV_EXTRA_DOMAIN
   ? [process.env.NEXT_PUBLIC_DEV_EXTRA_DOMAIN]
   : [];
 const LOCALE_COOKIE = "NEXT_LOCALE";
+const ORIGIN_QUERY_PARAM = "origem";
 
 /**
- * Multi-tenant (host) + i18n (path) num único proxy, nessa ordem:
+ * Multi-tenant (host) + i18n (path) + origem da visita (query → cookie)
+ * num único proxy, nessa ordem:
  *
  * 1. Resolve o host em `site | painel | loja` (lib/tenant-host.ts, puro,
  *    sem I/O). Não confere se o tenant existe de verdade — isso é feito
  *    depois, na página, via `lib/tenant.ts` (Firestore).
  * 2. Recalcula o header `x-tenant` do zero a partir do host e descarta
  *    qualquer `x-tenant` que tenha vindo do cliente — nunca confiamos nele.
- * 3. Só para rotas de loja (não `/painel`, que não é localizado ainda):
- *    resolve o locale (cookie `NEXT_LOCALE` → Accept-Language → `pt`,
- *    i18n/resolve-locale.ts) e decide entre redirecionar (URL externa
- *    precisa mudar, ex.: faltando o prefixo `/en`) ou reescrever para
- *    `/loja/<slug>/<locale>/...` (o path real das páginas).
+ * 3. Só para rotas de loja (não `/painel`, que não é localizado nem tem
+ *    origem ainda):
+ *    a. Resolve `?origem=` → cookie `c3d_origin` → User-Agent (Instagram)
+ *       → "direto" (lib/origin.ts) e recalcula o header `x-origin`, do
+ *       zero, do mesmo jeito que `x-tenant` — nunca confia num `x-origin`
+ *       vindo do cliente.
+ *    b. Resolve o locale (cookie `NEXT_LOCALE` → Accept-Language → `pt`,
+ *       i18n/resolve-locale.ts).
+ *    c. Se a URL externa precisa mudar (`?origem=` presente — tem que
+ *       sumir da URL pra não propagar ao compartilhar — ou faltando/sobrando
+ *       o prefixo de locale), redireciona UMA vez só resolvendo os dois
+ *       casos juntos; senão reescreve pra `/loja/<slug>/<locale>/...`.
  *
  * Por que não `createMiddleware(routing)` do next-intl direto: ver o
  * comentário em `i18n/routing.ts`.
  */
 export function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? request.nextUrl.host;
-  const { pathname, search } = request.nextUrl;
+  const { pathname, search, searchParams } = request.nextUrl;
 
   const route = resolveProxyRoute(host, pathname, ROOT_DOMAIN, EXTRA_DOMAINS);
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete("x-tenant");
+  requestHeaders.delete("x-origin");
 
   if (route.kind === "site") {
     // /loja/* só existe via rewrite (subdomínio de loja). Acesso direto pelo
@@ -60,20 +71,43 @@ export function proxy(request: NextRequest) {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
+  const isDocNav = isDocumentNavigation(request.headers.get("sec-fetch-dest"));
+
+  // --- origem ---
+  const rawOriginParam = searchParams.get(ORIGIN_QUERY_PARAM);
+  const origin = resolveOrigin({
+    queryParam: rawOriginParam,
+    cookieValue: request.cookies.get(ORIGIN_COOKIE)?.value,
+    userAgent: request.headers.get("user-agent"),
+  });
+  requestHeaders.set("x-origin", origin);
+  // Só ?origem= explícito vira cookie (ver lib/origin.ts) — e só numa
+  // navegação de documento de verdade, mesma razão do cookie de locale.
+  const originNeedsCleanup = isDocNav && rawOriginParam !== null;
+
+  // --- locale ---
   const preferredLocale = detectPreferredLocale(
     request.cookies.get(LOCALE_COOKIE)?.value,
     request.headers.get("accept-language"),
   );
   const localeResolution = resolveLocaleForPath(pathname, preferredLocale);
 
-  if (localeResolution.needsRedirect) {
+  if (localeResolution.needsRedirect || originNeedsCleanup) {
     const externalPath = buildExternalPath(
       localeResolution.locale,
       localeResolution.pathWithoutLocale,
     );
-    const response = NextResponse.redirect(new URL(externalPath + search, request.url));
-    if (shouldSyncLocaleCookie(request.headers.get("sec-fetch-dest"))) {
+    const cleanSearch = new URLSearchParams(search);
+    cleanSearch.delete(ORIGIN_QUERY_PARAM);
+    const query = cleanSearch.toString();
+    const response = NextResponse.redirect(
+      new URL(externalPath + (query ? `?${query}` : ""), request.url),
+    );
+    if (isDocNav) {
       response.cookies.set(LOCALE_COOKIE, localeResolution.locale, { path: "/", sameSite: "lax" });
+      if (isValidOrigin(rawOriginParam)) {
+        response.cookies.set(ORIGIN_COOKIE, rawOriginParam, { path: "/", sameSite: "lax" });
+      }
     }
     return response;
   }
@@ -88,7 +122,7 @@ export function proxy(request: NextRequest) {
   });
 
   if (
-    shouldSyncLocaleCookie(request.headers.get("sec-fetch-dest")) &&
+    isDocNav &&
     request.cookies.get(LOCALE_COOKIE)?.value !== localeResolution.locale
   ) {
     response.cookies.set(LOCALE_COOKIE, localeResolution.locale, { path: "/", sameSite: "lax" });

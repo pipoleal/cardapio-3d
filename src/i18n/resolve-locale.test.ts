@@ -4,7 +4,6 @@ import {
   buildLojaRewritePath,
   detectPreferredLocale,
   resolveLocaleForPath,
-  shouldSyncLocaleCookie,
 } from "./resolve-locale";
 
 describe("resolveLocaleForPath", () => {
@@ -82,20 +81,5 @@ describe("detectPreferredLocale", () => {
   it("sem cookie nem header reconhecido, cai para o padrão (pt)", () => {
     expect(detectPreferredLocale(undefined, "fr-FR")).toBe("pt");
     expect(detectPreferredLocale(null, null)).toBe("pt");
-  });
-});
-
-describe("shouldSyncLocaleCookie", () => {
-  it("navegação de documento (real) sincroniza o cookie", () => {
-    expect(shouldSyncLocaleCookie("document")).toBe(true);
-  });
-
-  it("sem o header (curl, scripts) também sincroniza — não é um navegador fazendo prefetch", () => {
-    expect(shouldSyncLocaleCookie(null)).toBe(true);
-  });
-
-  it("prefetch do <Link> (empty/iframe/etc.) NÃO sincroniza — é o bug que isso corrige", () => {
-    expect(shouldSyncLocaleCookie("empty")).toBe(false);
-    expect(shouldSyncLocaleCookie("iframe")).toBe(false);
   });
 });

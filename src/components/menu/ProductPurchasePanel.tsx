@@ -22,7 +22,8 @@ type ProductPurchasePanelProps = {
   productUrl: string;
   whatsappCtaLabel: string;
   whatsappCaption?: string;
-  acceptsOrders: boolean;
+  /** Já combina `product.acceptsOrders` com a origem/whatsappMode (ver lib/origin.ts) — a página decide, o painel só mostra ou não. */
+  showWhatsappCta: boolean;
 };
 
 /**
@@ -42,7 +43,7 @@ export function ProductPurchasePanel({
   productUrl,
   whatsappCtaLabel,
   whatsappCaption,
-  acceptsOrders,
+  showWhatsappCta,
 }: ProductPurchasePanelProps) {
   const [selectedId, setSelectedId] = useState(variants[0]?.id);
   const selectedVariant = variants.find((variant) => variant.id === selectedId);
@@ -83,7 +84,7 @@ export function ProductPurchasePanel({
         </div>
       )}
 
-      {acceptsOrders && (
+      {showWhatsappCta && (
         <WhatsAppCta href={whatsappUrl} label={whatsappCtaLabel} caption={whatsappCaption} />
       )}
     </>

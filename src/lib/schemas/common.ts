@@ -29,6 +29,20 @@ export const i18nStatusSchema = z.object({
 });
 export type I18nStatus = z.infer<typeof i18nStatusSchema>;
 
+/**
+ * Origem da visita (`?origem=` — ver lib/origin.ts). Lista aberta de
+ * propósito (loja, instagram, mesa, vitrine, ou qualquer slug novo que o
+ * lojista queira usar num link/QR) — só valida o FORMATO (slug curto),
+ * não os valores.
+ */
+export const originSchema = z
+  .string()
+  .regex(/^[a-z][a-z0-9-]{0,19}$/, "slug curto: minúsculas, números e hífen, começando por letra");
+export type Origin = z.infer<typeof originSchema>;
+
+export const whatsappModeSchema = z.enum(["discreet", "direct"]);
+export type WhatsappMode = z.infer<typeof whatsappModeSchema>;
+
 export const allergenSchema = z.enum([
   "gluten",
   "lactose",
