@@ -24,7 +24,7 @@ nos emuladores. `lib/firebase/admin.ts` não pede credencial real quando
 Em dois terminais:
 
 ```bash
-npm run emulators   # Auth (9099), Firestore (8080), Storage (9199) — UI em http://127.0.0.1:4000
+npm run emulators   # Auth (9099), Firestore (8080), Storage (9199) — UI em http://127.0.0.1:4001
 npm run dev          # http://localhost:3000
 ```
 
