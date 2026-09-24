@@ -19,7 +19,8 @@ type ProductCardProps = {
 // 2 linhas, "Contém/Pode conter" em texto (não chip — isso é só na página
 // do produto), preço ou "Esgotado hoje".
 export async function ProductCard({ product, locale, fresh }: ProductCardProps) {
-  const t = await getTranslations("menu");
+  // locale explícito: ver o comentário em loja/[tenant]/[locale]/page.tsx.
+  const t = await getTranslations({ locale, namespace: "menu" });
   const name = resolveLocalizedText(product.name, locale, product.i18nStatus);
   const description = product.description
     ? resolveLocalizedText(product.description, locale, product.i18nStatus)

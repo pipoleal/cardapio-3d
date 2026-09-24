@@ -15,7 +15,8 @@ export async function FreshBanner({
 }) {
   if (products.length === 0) return null;
 
-  const t = await getTranslations("menu");
+  // locale explícito: ver o comentário em loja/[tenant]/[locale]/page.tsx.
+  const t = await getTranslations({ locale, namespace: "menu" });
   const names = products
     .map((product) => resolveLocalizedText(product.name, locale, product.i18nStatus))
     .join(" · ");

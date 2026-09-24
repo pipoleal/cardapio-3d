@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AllergensCard } from "@/components/menu/AllergensCard";
 import { ProductPurchasePanel } from "@/components/menu/ProductPurchasePanel";
@@ -64,10 +63,34 @@ export default async function ProductPage(
   const localeTyped = locale as AppLocale;
 
   const result = await loadProduct(tenantSlug, productId);
-  if (!result) notFound();
+
+  if (!result) {
+    // Renderiza direto aqui em vez de `notFound()` + not-found.tsx: esse
+    // boundary não recebe `params`, e `next/root-params` + `connection()`
+    // pra descobrir o locale lá mostrou um bug real de cache cruzado entre
+    // locales nessa rota específica (confirmado em dev E em `next start`,
+    // não é só do dev). A página já tem `localeTyped` de sobra e resolvido
+    // sem ambiguidade, então é mais simples e mais confiável resolver aqui.
+    const tNotFound = await getTranslations({ locale: localeTyped, namespace: "notFound" });
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
+        <h1 className="font-heading text-2xl font-semibold text-ink">
+          {tNotFound("productTitle")}
+        </h1>
+        <p className="text-muted">{tNotFound("productDescription")}</p>
+      </div>
+    );
+  }
+
   const { tenant, product } = result;
 
-  const [t, tProduct] = await Promise.all([getTranslations("menu"), getTranslations("product")]);
+  // locale explícito: sem isso, getTranslations() às vezes resolve a
+  // config errada (corrida de cache do next-intl — achado testando /en e
+  // /es com Playwright).
+  const [t, tProduct] = await Promise.all([
+    getTranslations({ locale: localeTyped, namespace: "menu" }),
+    getTranslations({ locale: localeTyped, namespace: "product" }),
+  ]);
 
   const name = resolveLocalizedText(product.name, localeTyped, product.i18nStatus);
   const description = product.description
@@ -79,12 +102,13 @@ export default async function ProductPage(
 
   const variants = (product.variants ?? []).map((variant) => ({
     id: variant.id,
-    name: resolveLocalizedText(variant.name, localeTyped),
+    // Mesmo i18nStatus do produto — a aprovação é por produto, não por campo.
+    name: resolveLocalizedText(variant.name, localeTyped, product.i18nStatus),
     priceCents: variant.priceCents,
   }));
 
   const whatsappTemplate = tenant.whatsappTemplate
-    ? resolveLocalizedText(tenant.whatsappTemplate, localeTyped)
+    ? resolveLocalizedText(tenant.whatsappTemplate, localeTyped, tenant.i18nStatus)
     : tProduct("defaultWhatsappTemplate");
 
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
@@ -107,7 +131,7 @@ export default async function ProductPage(
         <LanguageSwitcher currentLocale={localeTyped} variant="compact" />
       </header>
 
-      <ProductMedia product={product} name={name} hasModel={hasModel} />
+      <ProductMedia product={product} name={name} hasModel={hasModel} locale={localeTyped} />
 
       {/* "Ver na sua mesa (AR)" só existe quando há modelo de verdade — bem
           escondido, não desabilitado (um botão cinza pareceria quebrado). */}

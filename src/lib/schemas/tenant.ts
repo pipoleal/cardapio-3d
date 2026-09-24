@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { localeSchema, localizedTextSchema } from "./common";
+import { i18nStatusSchema, localeSchema, localizedTextSchema } from "./common";
 
 export const tenantThemeSchema = z.object({
   primary: z.string(),
@@ -19,6 +19,8 @@ export const tenantSchema = z.object({
   instagram: z.string().optional(),
   address: z.string().optional(),
   openingHours: localizedTextSchema.optional(),
+  // Gate único pra description + openingHours + whatsappTemplate (ver common.ts).
+  i18nStatus: i18nStatusSchema.optional(),
   locales: z.array(localeSchema),
   defaultLocale: localeSchema,
   theme: tenantThemeSchema,

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { buildExternalPath, resolveLocaleForPath } from "@/i18n/resolve-locale";
 import { routing, type AppLocale } from "@/i18n/routing";
@@ -22,6 +23,7 @@ export function LanguageSwitcher({ currentLocale, variant = "pills" }: LanguageS
   const pathname = usePathname();
   const { pathWithoutLocale } = resolveLocaleForPath(pathname, currentLocale);
   const [open, setOpen] = useState(false);
+  const t = useTranslations("common");
 
   const isCompact = variant === "compact";
 
@@ -47,7 +49,7 @@ export function LanguageSwitcher({ currentLocale, variant = "pills" }: LanguageS
           type="button"
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
-          aria-label="Idioma"
+          aria-label={t("languageLabel")}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-surface px-3 text-sm font-medium text-ink"
         >
           <GlobeIcon />
@@ -65,7 +67,7 @@ export function LanguageSwitcher({ currentLocale, variant = "pills" }: LanguageS
   return (
     <div
       role="group"
-      aria-label="Idioma"
+      aria-label={t("languageLabel")}
       className="inline-flex items-center gap-1 rounded-full border border-border bg-surface p-1"
     >
       {options}

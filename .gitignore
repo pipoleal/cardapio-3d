@@ -13,3 +13,4 @@ tmp_scaffold/
 *.tsbuildinfo
 coverage/
 screenshots/
+.claude/

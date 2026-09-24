@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { allergenSchema, localizedTextSchema } from "./common";
+import { allergenSchema, i18nStatusSchema, localizedTextSchema } from "./common";
 
 export const productVariantSchema = z.object({
   id: z.string(),
@@ -22,8 +22,6 @@ export const productModelSchema = z.object({
   updatedAt: z.date().optional(),
 });
 
-const i18nFieldStatusSchema = z.enum(["missing", "auto", "approved"]);
-
 export const productSchema = z.object({
   id: z.string(),
   categoryId: z.string(),
@@ -45,12 +43,8 @@ export const productSchema = z.object({
     .optional(),
   model: productModelSchema,
   sliceModel: productModelSchema.optional(),
-  i18nStatus: z
-    .object({
-      en: i18nFieldStatusSchema.optional(),
-      es: i18nFieldStatusSchema.optional(),
-    })
-    .optional(),
+  // Gate único pra name + description + variants[].name (ver common.ts).
+  i18nStatus: i18nStatusSchema.optional(),
   available: z.boolean(),
   // Date "crua" (não filtrada por FRESH_HOURS aqui) — "use cache" não pode
   // fazer essa conta com Date.now(), fica pra renderização (lib/fresh.ts).

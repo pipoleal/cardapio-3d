@@ -10,6 +10,11 @@ type LocalizedText = { pt: string; en?: string; es?: string };
 type Allergen =
   | "gluten" | "lactose" | "milk" | "egg" | "peanut" | "tree_nuts"
   | "soy" | "sesame" | "fish" | "shellfish" | "sulfites";
+// Aprovação de tradução por ENTIDADE (tenant, categoria, produto), não por
+// campo: um único i18nStatus[locale] === "approved" libera TODOS os
+// LocalizedText daquela entidade pro cliente de uma vez (ver "Traduções" no
+// fim deste arquivo).
+type I18nStatus = { en?: "missing" | "auto" | "approved"; es?: "missing" | "auto" | "approved" };
 ```
 
 ## Coleções
@@ -36,6 +41,7 @@ Reserva única de subdomínio.
   whatsapp: string;             // E.164 sem "+", ex.: "5511999999999"
   whatsappTemplate?: LocalizedText; // "Olá! Quero encomendar {produto} ({variacao})"
   instagram?: string; address?: string; openingHours?: LocalizedText;
+  i18nStatus?: I18nStatus;      // libera description + openingHours + whatsappTemplate juntos
   locales: Locale[];            // ex.: ["pt","en","es"]
   defaultLocale: Locale;        // "pt"
   theme: { primary: string; background?: string; font?: "sans" | "serif" };
@@ -49,7 +55,7 @@ Reserva única de subdomínio.
 
 ### `tenants/{tenantId}/categories/{categoryId}`
 ```ts
-{ name: LocalizedText; order: number; active: boolean }
+{ name: LocalizedText; i18nStatus?: I18nStatus; order: number; active: boolean }
 ```
 
 ### `tenants/{tenantId}/products/{productId}`
@@ -80,7 +86,7 @@ Reserva única de subdomínio.
     updatedAt?: Timestamp;
   };
   sliceModel?: Product["model"];    // opcional: modelo da fatia (alternador Inteiro | Fatia)
-  i18nStatus?: { en?: "missing" | "auto" | "approved"; es?: "missing" | "auto" | "approved" };
+  i18nStatus?: I18nStatus;          // libera name + description + variants[].name juntos
   available: boolean;               // false = "esgotado hoje"
   freshFromOvenAt?: Timestamp | null; // "saiu do forno" — aparece por FRESH_HOURS (padrão 3 h)
   acceptsOrders: boolean;           // "aceita encomenda" (mostra ou esconde o botão do WhatsApp)
@@ -123,7 +129,12 @@ Reserva única de subdomínio.
 - `products`: `categoryId ASC, order ASC`; `available ASC, order ASC`.
 - `modelJobs`: `status ASC, createdAt DESC`.
 
-> Traduções: o cardápio público mostra en/es só quando `i18nStatus[locale] === "approved"`; senão cai para `pt`.
+> **Traduções:** o cardápio público mostra en/es só quando `i18nStatus[locale] === "approved"`; senão cai para `pt`.
+> `i18nStatus` existe em três lugares — `tenants/{tenantId}`, `tenants/{tenantId}/categories/{categoryId}` e
+> `tenants/{tenantId}/products/{productId}` — e é sempre **por entidade, não por campo**: aprovar o `en` de
+> um produto libera nome, descrição e nome das variações juntos; aprovar o `en` do tenant libera descrição,
+> horário de funcionamento e template do WhatsApp juntos. Não existe aprovação parcial (ex.: nome aprovado
+> mas descrição não) — simplifica o "Aprovar tradução" do mockup 05 (Etapa 3) pra um botão só por entidade.
 
 ## Storage
 

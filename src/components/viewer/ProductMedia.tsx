@@ -1,11 +1,13 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
+import type { AppLocale } from "@/i18n/routing";
 import type { Product } from "@/lib/schemas/product";
 
 type ProductMediaProps = {
   product: Product;
   name: string;
   hasModel: boolean;
+  locale: AppLocale;
 };
 
 /**
@@ -15,8 +17,9 @@ type ProductMediaProps = {
  * "arraste para girar" fica de fora enquanto não há 3D de verdade (seria
  * enganosa numa foto estática).
  */
-export async function ProductMedia({ product, name, hasModel }: ProductMediaProps) {
-  const t = await getTranslations("product");
+export async function ProductMedia({ product, name, hasModel, locale }: ProductMediaProps) {
+  // locale explícito: ver o comentário em loja/[tenant]/[locale]/page.tsx.
+  const t = await getTranslations({ locale, namespace: "product" });
 
   return (
     <div className="relative aspect-square overflow-hidden rounded-[24px] bg-bg-panel">

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { DM_Sans, Fraunces } from "next/font/google";
-import { setRequestLocale } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages, setRequestLocale } from "next-intl/server";
 import { isAppLocale, routing } from "@/i18n/routing";
 import "../../../globals.css";
 
@@ -52,9 +53,24 @@ export default async function LojaLayout(props: LayoutProps<"/loja/[tenant]/[loc
   if (!isAppLocale(locale)) notFound();
   setRequestLocale(locale);
 
+  // Só Server Components conseguem `getTranslations`; o LanguageSwitcher é
+  // client component (precisa de estado pro dropdown), então precisa do
+  // provider pra usar `useTranslations`. Passa `locale` explícito — sem
+  // isso, `getMessages()` depende de uma resolução de locale cacheada por
+  // `React.cache()` que, nessa árvore (dois root layouts + root params),
+  // às vezes resolve antes do `setRequestLocale` acima "grudar", devolvendo
+  // pt mesmo com `locale` correto no resto da página (bug real, achado
+  // testando /en com Playwright: o provider recebia locale="en" mas
+  // messages em pt).
+  const messages = await getMessages({ locale });
+
   return (
     <html lang={locale} className={`${fraunces.variable} ${dmSans.variable}`}>
-      <body className="min-h-dvh bg-bg font-sans text-ink">{props.children}</body>
+      <body className="min-h-dvh bg-bg font-sans text-ink">
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {props.children}
+        </NextIntlClientProvider>
+      </body>
     </html>
   );
 }

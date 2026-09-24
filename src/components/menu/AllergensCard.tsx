@@ -15,7 +15,8 @@ type AllergensCardProps = {
 export async function AllergensCard({ allergens, mayContain, locale }: AllergensCardProps) {
   if (allergens.length === 0 && (!mayContain || mayContain.length === 0)) return null;
 
-  const t = await getTranslations("product");
+  // locale explícito: ver o comentário em loja/[tenant]/[locale]/page.tsx.
+  const t = await getTranslations({ locale, namespace: "product" });
 
   return (
     <Card className="flex flex-col gap-3 p-4">

@@ -27,7 +27,7 @@ export async function generateMetadata(
   if (!tenant) return {};
 
   const description = tenant.description
-    ? resolveLocalizedText(tenant.description, locale as AppLocale)
+    ? resolveLocalizedText(tenant.description, locale as AppLocale, tenant.i18nStatus)
     : undefined;
 
   return {
@@ -51,7 +51,10 @@ export default async function LojaPage(props: PageProps<"/loja/[tenant]/[locale]
 
   const [{ categories, products }, t] = await Promise.all([
     getMenu(tenant.id),
-    getTranslations("menu"),
+    // locale explícito: sem isso, getTranslations() às vezes resolve a
+    // config errada (corrida de cache do next-intl — achado testando /en
+    // e /es com Playwright, mesma causa do fix em getMessages() no layout).
+    getTranslations({ locale: localeTyped, namespace: "menu" }),
   ]);
 
   const generalWhatsappUrl = buildWhatsappUrl(
@@ -128,7 +131,7 @@ async function MenuSections({
         return (
           <section key={category.id} id={`categoria-${category.id}`} className="scroll-mt-16">
             <h2 className="font-heading mb-3 text-xl font-semibold text-ink">
-              {resolveLocalizedText(category.name, locale)}
+              {resolveLocalizedText(category.name, locale, category.i18nStatus)}
             </h2>
             <div className="flex flex-col gap-3">
               {categoryProducts.map((product) => (

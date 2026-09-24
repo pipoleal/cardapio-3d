@@ -1,7 +1,4 @@
-import type { Locale, LocalizedText } from "./schemas/common";
-
-type I18nFieldStatus = "missing" | "auto" | "approved";
-type I18nStatus = Partial<Record<Exclude<Locale, "pt">, I18nFieldStatus>>;
+import type { I18nStatus, Locale, LocalizedText } from "./schemas/common";
 
 /**
  * en/es só aparecem pro cliente quando aprovados pelo lojista

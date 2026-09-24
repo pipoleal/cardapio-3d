@@ -1,4 +1,8 @@
 {
+  "common": {
+    "categoriesNav": "Categories",
+    "languageLabel": "Language"
+  },
   "notFound": {
     "title": "Store not found",
     "description": "Check the address or go back to the home page.",

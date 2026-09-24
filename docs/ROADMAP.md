@@ -36,7 +36,7 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [ ] Upload da capa com compressão.
 - [ ] Configurações da loja: nome, WhatsApp, idiomas, cor, logo.
 - [ ] Interruptores Esgotado hoje · Saiu do forno · Aceita encomenda; botão "Marcar 'saiu do forno'" na visão geral.
-- [ ] Tradução automática (`POST /api/translate`) + fluxo "Aprovar tradução" / "Traduzir de novo" (mockup 05) + página Traduções com o que está pendente.
+- [ ] Tradução automática (`POST /api/translate`) + fluxo "Aprovar tradução" / "Traduzir de novo" (mockup 05) + página Traduções com o que está pendente. `i18nStatus` é por entidade (ver `docs/MODELO-DE-DADOS.md`): traduzir um produto tem que preencher nome + descrição + nome de **todas** as variações numa tacada só (não campo a campo); o botão também precisa existir pra categorias (nome) e pra loja (descrição + horário de funcionamento + template do WhatsApp).
 - [ ] QR code da loja para baixar (PNG/PDF) — ótimo para colocar no balcão.
 
 ## Etapa 4 — 3D e AR

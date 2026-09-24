@@ -1,4 +1,8 @@
 {
+  "common": {
+    "categoriesNav": "Categorías",
+    "languageLabel": "Idioma"
+  },
   "notFound": {
     "title": "Tienda no encontrada",
     "description": "Revisa la dirección o vuelve a la página de inicio.",
