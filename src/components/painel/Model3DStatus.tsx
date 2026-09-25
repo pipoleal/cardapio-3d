@@ -67,7 +67,7 @@ export function Model3DStatus({
   }, [tenantId, productId]);
 
   const hasAndroid = Boolean(model.glbUrl);
-  const hasIos = Boolean(model.usdzUrl);
+  const hasUsdz = Boolean(model.usdzUrl);
   const captureHref = `/painel/${tenantSlug}/captura?produto=${productId}`;
 
   async function handleUploadSubmit() {
@@ -160,7 +160,13 @@ export function Model3DStatus({
           )}
           <div className="flex justify-between">
             <dt>AR compatível</dt>
-            <dd>{hasIos ? "Android e iPhone" : hasAndroid ? "Android" : "—"}</dd>
+            <dd>
+              {hasAndroid
+                ? hasUsdz
+                  ? "Android e iPhone"
+                  : "Android e iPhone (USDZ automático pelo Safari)"
+                : "—"}
+            </dd>
           </div>
         </dl>
       )}
@@ -200,7 +206,8 @@ export function Model3DStatus({
                 <input ref={glbInputRef} type="file" accept=".glb" className="text-xs" />
               </label>
               <label className="flex flex-col gap-1 text-xs text-muted">
-                Arquivo .usdz — opcional, precisa pra AR no iPhone (sem ele, só funciona no Android)
+                Arquivo .usdz — opcional. O Safari do iPhone já converte o .glb pra AR
+                automaticamente; envie o seu só se quiser mais controle sobre o resultado.
                 <input ref={usdzInputRef} type="file" accept=".usdz" className="text-xs" />
               </label>
               {uploadError && <p className="text-xs text-rec">{uploadError}</p>}

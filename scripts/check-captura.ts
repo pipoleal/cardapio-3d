@@ -126,7 +126,13 @@ async function run() {
   // ModelJobsPoller do layout sonda a cada 5s, dá bastante folga.
   await page.getByText("Pronto", { exact: true }).waitFor({ timeout: 30000 }).catch(() => null);
   check((await page.getByText("Pronto", { exact: true }).count()) === 1, "status vira 'Pronto' depois do processamento");
-  check((await page.getByText("Android").count()) >= 1, "AR compatível mostra 'Android' (fake não gera USDZ)");
+  // Fake provider não devolve .usdz, mas o Safari gera na hora a partir do
+  // .glb (docs/DECISOES.md #25) — o card já avisa isso em vez de dizer que
+  // só funciona no Android.
+  check(
+    (await page.getByText("USDZ automático pelo Safari").count()) >= 1,
+    "AR compatível avisa que o iPhone gera USDZ automaticamente (fake não devolve .usdz)",
+  );
 
   // cardápio público: selo 3D no card da lista + na página do produto.
   // `getMenu()` é `'use cache'` com `revalidateTag` no fim do GET que

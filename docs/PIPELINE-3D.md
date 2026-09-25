@@ -82,13 +82,19 @@ memória — o horário de criação vai codificado no próprio `taskId` (`fake-
 sobrevive a um reload do servidor de dev. Devolve como output o `.gltf` de amostra em
 `public/sample-models/` (gerado por `scripts/generate-sample-model.ts`), que passa pelo **mesmo**
 caminho de cópia pro Storage que a Meshy de verdade (`finalizeModelOutputs`) — sem atalho. Não
-tem USDZ de verdade (não dá pra fabricar um USDZ válido à mão), então em modo fake o AR não
-aparece no iPhone; pra validar isso, rodar uma vez com `MODEL_PROVIDER=meshy` e uma chave real.
+tem USDZ de verdade — mas isso não impede o AR no iPhone: o `<model-viewer>` já gera um USDZ
+automaticamente no navegador a partir do `.gltf`/`.glb` quando `ios-src` está ausente (ver
+`docs/DECISOES.md` #25); o Safari real é que precisa validar isso (não dá pra automatizar fora de
+hardware Apple), então continua valendo rodar uma vez com `MODEL_PROVIDER=meshy` e um iPhone de
+verdade pra conferir o fluxo completo.
 
 ## 4. Pós-processamento (fase 2)
 
 - Compressão do GLB com `gltf-transform` (Draco/Meshopt + texturas WebP/KTX2) para ficar com menos de 5 MB.
-- Se o provedor não devolver USDZ: gerar com a exportação USDZ do `<model-viewer>`/three.js ou deixar o AR só no Android.
+- ~~Se o provedor não devolver USDZ: gerar com a exportação USDZ do `<model-viewer>`/three.js~~ — já
+  acontece sozinho, o `<model-viewer>` faz isso no navegador do visitante sem precisar de nada do
+  nosso servidor (ver `docs/DECISOES.md` #25). O que falta é só validar em iPhone real com modelos
+  variados (materiais incomuns podem falhar na conversão automática — ver ressalva na decisão).
 - Editor simples no painel: girar e centralizar o modelo, ajustar a escala real (ex.: brigadeiro ≈ 3 cm) → `product.model.scale`.
 
 ## 5. Visualização (`components/viewer/ProductViewer.tsx`)

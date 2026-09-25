@@ -183,12 +183,13 @@ const modelUploadInputSchema = z.object({
 /**
  * "Subir meu modelo" (card Modelo 3D, item d de docs/PIPELINE-3D.md) —
  * chamado depois do upload direto pro storage (mesmo `uploadFile()` da
- * capa/logo, store público). Sem `.usdz`: o AR funciona só no Android
- * (Scene Viewer/WebXR) — o `<model-viewer>` não gera USDZ a partir do GLB
- * sozinho, é só um visualizador (confirmado em `model-viewer.d.ts`,
- * `iosSrc` é só uma propriedade de URL). Substitui `product.model`
- * inteiro (sem `costCents`/`jobId`/`posterUrl` — não fazem sentido pra um
- * upload manual) e apaga os arquivos do modelo anterior.
+ * capa/logo, store público). `.usdz` é opcional: sem ele, o Safari do
+ * iPhone converte o `.glb` pra USDZ automaticamente no momento do AR
+ * (`USDZExporter` do three.js embutido no `<model-viewer>` desde a v4,
+ * ver docs/DECISOES.md #25) — enviar um `.usdz` de verdade só dá mais
+ * controle sobre o resultado. Substitui `product.model` inteiro (sem
+ * `costCents`/`jobId`/`posterUrl` — não fazem sentido pra um upload
+ * manual) e apaga os arquivos do modelo anterior.
  */
 export async function setProductModelUpload(
   tenantId: string,
