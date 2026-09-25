@@ -15,6 +15,13 @@ if (useEmulators) {
   process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
   process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
   process.env.FIREBASE_STORAGE_EMULATOR_HOST ??= "127.0.0.1:9199";
+  // Sem credencial real, o google-auth-library tenta descobrir se está
+  // rodando num ambiente Google Cloud (fetch pro metadata server) — em dev
+  // isso sempre falha (ETIMEDOUT/ENOTFOUND) e emite um MetadataLookupWarning
+  // que o Next (Turbopack, modo dev) mostra como erro de tela cheia pro
+  // usuário, mesmo não afetando nada (os emuladores nunca pedem credencial
+  // de verdade). "none" pula essa checagem de vez.
+  process.env.METADATA_SERVER_DETECTION ??= "none";
 }
 
 function createAdminApp(): App {
