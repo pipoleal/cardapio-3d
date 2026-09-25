@@ -1,5 +1,7 @@
 # CLAUDE.md — Cardápio 3D
 
+> Sempre responda, pergunte e escreva planos e relatórios em português do Brasil.
+>
 > Guia para o Claude Code. Leia este arquivo **inteiro** antes de qualquer tarefa.
 > Detalhes em `docs/`: ARQUITETURA.md, MODELO-DE-DADOS.md, PIPELINE-3D.md, ROADMAP.md, DECISOES.md.
 > **Visual:** `docs/REFERENCIAS-VISUAIS.md` + os PNGs em `docs/referencias-visuais/` são a fonte da verdade do layout. Abra o PNG da tela antes de implementá-la.

@@ -91,12 +91,14 @@ O proxy expõe o resultado pras páginas via header `x-origin` (recalculado a ca
 
 ## Analytics (custo zero)
 
-- **Eventos próprios** via `POST /api/track` → incremento em `tenants/{id}/stats/{AAAA-MM-DD}` usando `FieldValue.increment` (um documento por dia, com campos agregados):
-  `menu_view`, `product_view.{productId}`, `model_open.{productId}`, `ar_open.{productId}`, `whatsapp_click.{productId}`, `locale.{pt|en|es}`, `origin.{loja|mesa|vitrine|instagram|direto|...}` (Etapa 5 — contagem de visitas por origem, ver seção acima).
+- **Eventos próprios** via `POST /api/track` → incremento em `tenants/{id}/stats/{AAAA-MM-DD}` (chave sempre no fuso `America/Sao_Paulo`, `lib/date-key.ts`) usando `FieldValue.increment` (um documento por dia, com campos agregados):
+  `menu_view`, `product_view.{productId}`, `model_open.{productId}`, `ar_open.{productId}`, `whatsapp_click.{productId|"_geral"}`, `locale.{pt|en|es}`, `origin.{loja|mesa|vitrine|instagram|direto|...}` (Etapa 5 — contagem de visitas por origem, ver seção acima).
+- **`/api/track` não passa pelo `proxy.ts`** (`config.matcher` exclui `/api` explicitamente) — nunca recebe `x-origin`/`x-tenant`. A página (que já roda atrás do proxy) resolve `origin`/`locale`/`tenantId` e manda os três no corpo do evento; o Route Handler só confere que o `tenantId` existe/está ativo (lookup cacheado, `getTenantById`) e, quando o evento tem `productId`, que ele existe no tenant (`getMenu`, também cacheado).
+- `sendBeacon` no cliente (`lib/track.ts`), dedup por sessão em `menu_view`/`product_view` (`sessionStorage`, evita inflar visitas com "voltar"/recarregar); `model_open`/`ar_open`/`whatsapp_click` sempre contam.
 - Não gravar dado pessoal (LGPD). Sem cookies de rastreamento: o banner de cookies não é necessário para isso.
-- Proteção básica: rate limit por IP em memória + `sendBeacon`; ignorar bots pelo user-agent.
-- **Painel → Estatísticas:** gráfico dos últimos 30 dias + top produtos + taxa "abriu o 3D → clicou no WhatsApp".
-- **Vercel Web Analytics** (grátis no Hobby) para visão geral de visitas no site do produto.
+- Proteção básica: rate limit por IP em memória (por instância — ver `docs/DECISOES.md`) + filtro de bot pelo user-agent.
+- **Painel → Visão geral:** 4 KPIs, produtos mais vistos, idiomas usados, acessos por origem, funil "abriu o 3D → clicou no WhatsApp", filtro de período (7/30 dias) — `lib/stats.ts`.
+- **Vercel Web Analytics** (grátis no Hobby) só no site do produto (`(main)/(site)/layout.tsx`) — não no painel nem no admin.
 
 ## Segurança
 

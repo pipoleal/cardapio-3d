@@ -3,24 +3,26 @@
 import "@google/model-viewer";
 import type { ModelViewerElement } from "@google/model-viewer";
 import { useEffect, useRef } from "react";
-
-// Eventos pro analytics (docs/PIPELINE-3D.md §5) — `track()` só faz
-// console.debug em dev por ora, `/api/track` é Etapa 5, este é o ponto de
-// chamada certo pra trocar depois.
-function track(event: "model_open" | "ar_open") {
-  if (process.env.NODE_ENV !== "production") console.debug("[track]", event);
-}
+import { track } from "@/lib/track";
 
 export function ProductViewer({
   glbUrl,
   usdzUrl,
   posterUrl,
   alt,
+  tenantId,
+  productId,
+  locale,
+  origin,
 }: {
   glbUrl: string;
   usdzUrl: string | undefined;
   posterUrl: string | undefined;
   alt: string;
+  tenantId: string;
+  productId: string;
+  locale: string;
+  origin: string;
 }) {
   const ref = useRef<ModelViewerElement>(null);
 
@@ -28,10 +30,11 @@ export function ProductViewer({
     const el = ref.current;
     if (!el) return;
 
-    const onLoad = () => track("model_open");
+    // Eventos pro analytics (docs/PIPELINE-3D.md §5).
+    const onLoad = () => track("model_open", { tenantId, productId, locale, origin });
     const onArStatus = (event: Event) => {
       const status = (event as CustomEvent<{ status: string }>).detail?.status;
-      if (status === "session-started") track("ar_open");
+      if (status === "session-started") track("ar_open", { tenantId, productId, locale, origin });
     };
 
     el.addEventListener("load", onLoad);
@@ -40,7 +43,7 @@ export function ProductViewer({
       el.removeEventListener("load", onLoad);
       el.removeEventListener("ar-status", onArStatus);
     };
-  }, []);
+  }, [tenantId, productId, locale, origin]);
 
   return (
     <model-viewer

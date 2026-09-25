@@ -44,6 +44,33 @@ export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
 }
 
 /**
+ * Igual a `getTenantBySlug`, mas pulando o passo `slugs/{slug}` — usado
+ * onde já se tem o `tenantId` de verdade (ex.: `POST /api/track`, que não
+ * passa pelo `proxy.ts` e por isso não recebe `x-tenant`/`slug` — só o
+ * `tenantId` que a página já resolveu). Mesma tag/`cacheLife` de
+ * `getTenantBySlug`, então uma mudança no tenant invalida os dois juntos.
+ */
+export async function getTenantById(tenantId: string): Promise<Tenant | null> {
+  "use cache";
+  cacheTag(`tenant:${tenantId}`);
+  cacheLife("tenant");
+
+  const tenantDoc = await adminDb.collection("tenants").doc(tenantId).get();
+  if (!tenantDoc.exists) return null;
+
+  const data = tenantDoc.data()!;
+  const parsed = tenantSchema.safeParse({
+    id: tenantDoc.id,
+    ...data,
+    createdAt: toDate(data.createdAt),
+    updatedAt: toDate(data.updatedAt),
+  });
+  if (!parsed.success || !parsed.data.active) return null;
+
+  return parsed.data;
+}
+
+/**
  * Todas as lojas (ativas ou não) — só pro `/admin` do superadmin e pro
  * seletor de loja do painel quando é superadmin (mockup 04: "ou todas, se
  * for superadmin"). Sem `'use cache'`: é uma lista de navegação, não

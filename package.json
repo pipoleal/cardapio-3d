@@ -14,6 +14,8 @@
     "format": "prettier --write .",
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
     "set-superadmin": "tsx --env-file=.env.local scripts/set-superadmin.ts",
+    "create-tenant": "tsx --env-file=.env.local scripts/create-tenant.ts",
+    "seed-real": "tsx --env-file=.env.local scripts/seed-real.ts",
     "emulators": "firebase emulators:start --project demo-cardapio",
     "screenshot": "tsx scripts/screenshot.ts",
     "screenshot-painel": "tsx --env-file=.env.local scripts/screenshot-painel.ts",
@@ -25,6 +27,7 @@
   "dependencies": {
     "@google-cloud/translate": "^10.1.0",
     "@google/model-viewer": "^4.3.1",
+    "@vercel/analytics": "^2.0.1",
     "firebase": "^12.19.0",
     "firebase-admin": "^14.5.0",
     "next": "16.3.6",

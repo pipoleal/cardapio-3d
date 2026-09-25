@@ -3,7 +3,9 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { getTranslations } from "next-intl/server";
+import { TrackPageView } from "@/components/analytics/TrackPageView";
 import { AllergensCard } from "@/components/menu/AllergensCard";
+import { DiscreetWhatsappLink } from "@/components/menu/DiscreetWhatsappLink";
 import { ProductPurchasePanel } from "@/components/menu/ProductPurchasePanel";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { ArButton } from "@/components/viewer/ArButton";
@@ -166,7 +168,16 @@ export default async function ProductPage(
         <LanguageSwitcher currentLocale={localeTyped} variant="compact" />
       </header>
 
-      <ProductMedia product={product} name={name} hasModel={hasModel} locale={localeTyped} />
+      <TrackPageView event="product_view" tenantId={tenant.id} productId={product.id} locale={localeTyped} origin={origin} />
+
+      <ProductMedia
+        product={product}
+        name={name}
+        hasModel={hasModel}
+        locale={localeTyped}
+        tenantId={tenant.id}
+        origin={origin}
+      />
 
       {/* "Ver na sua mesa (AR)" só existe quando há modelo de verdade — bem
           escondido, não desabilitado (um botão cinza pareceria quebrado). */}
@@ -191,6 +202,9 @@ export default async function ProductPage(
         whatsappCtaLabel={t("whatsappCta")}
         whatsappCaption={tProduct("whatsappCaption")}
         showProminentCta={showProminentCta}
+        tenantId={tenant.id}
+        productId={product.id}
+        origin={origin}
       />
 
       {description && <p className="text-sm text-muted">{description}</p>}
@@ -198,15 +212,15 @@ export default async function ProductPage(
       <AllergensCard allergens={product.allergens} mayContain={product.mayContain} locale={localeTyped} />
 
       {showDiscreetHint && (
-        <a
+        <DiscreetWhatsappLink
           href={discreetWhatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="whatsapp-hint-discreet"
-          className="inline-flex min-h-11 w-fit items-center justify-center rounded-cta border border-border px-4 text-sm font-medium text-ink"
-        >
-          {tProduct("discreetWhatsappHint")}
-        </a>
+          label={tProduct("discreetWhatsappHint")}
+          tenantId={tenant.id}
+          productId={product.id}
+          locale={localeTyped}
+          origin={origin}
+          testId="whatsapp-hint-discreet"
+        />
       )}
     </div>
   );

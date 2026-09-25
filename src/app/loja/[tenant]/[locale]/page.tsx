@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
+import { TrackPageView } from "@/components/analytics/TrackPageView";
 import { CategoryTabs } from "@/components/menu/CategoryTabs";
 import { FreshBanner } from "@/components/menu/FreshBanner";
 import { ProductCard } from "@/components/menu/ProductCard";
@@ -80,6 +81,10 @@ export default async function LojaPage(props: PageProps<"/loja/[tenant]/[locale]
         <LanguageSwitcher currentLocale={localeTyped} />
       </header>
 
+      <Suspense fallback={null}>
+        <TrackMenuView tenantId={tenant.id} locale={localeTyped} />
+      </Suspense>
+
       {tenant.whatsapp && (
         <Suspense fallback={null}>
           <DiscreetCounterHintSection
@@ -105,6 +110,8 @@ export default async function LojaPage(props: PageProps<"/loja/[tenant]/[locale]
             href={generalWhatsappUrl}
             label={t("whatsappCta")}
             whatsappMode={tenant.whatsappMode}
+            tenantId={tenant.id}
+            locale={localeTyped}
           />
         </Suspense>
       )}
@@ -123,14 +130,25 @@ async function WhatsappCtaSection({
   href,
   label,
   whatsappMode,
+  tenantId,
+  locale,
 }: {
   href: string;
   label: string;
   whatsappMode: WhatsappMode;
+  tenantId: string;
+  locale: AppLocale;
 }) {
   const origin = (await headers()).get("x-origin") ?? ORIGIN_DIRECT;
   if (!shouldShowProminentWhatsappCta(origin, whatsappMode)) return null;
-  return <WhatsAppCta href={href} label={label} />;
+  // CTA geral da home, sem produto específico — ver lib/schemas/stats.ts.
+  return <WhatsAppCta href={href} label={label} tenantId={tenantId} locale={locale} origin={origin} />;
+}
+
+/** Mesma razão de `WhatsappCtaSection` pra isolar `headers()` num Suspense próprio. */
+async function TrackMenuView({ tenantId, locale }: { tenantId: string; locale: AppLocale }) {
+  const origin = (await headers()).get("x-origin") ?? ORIGIN_DIRECT;
+  return <TrackPageView event="menu_view" tenantId={tenantId} locale={locale} origin={origin} />;
 }
 
 /** "Para pedir agora, fale no balcão" — só no modo discreto (ver lib/origin.ts). */

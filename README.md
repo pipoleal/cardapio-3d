@@ -135,3 +135,9 @@ npm run screenshot                 # precisa de emuladores + seed + dev (ou buil
 ```
 
 Salva em `screenshots/` (fora do git — pasta local, cada um tira a sua).
+
+## Deploy de staging
+
+Checklist completo pra subir um ambiente de teste na Vercel com Firebase real (variáveis de
+ambiente, domínios autorizados no Auth, regras, CORS do Storage, subdomínio curinga sem domínio
+próprio ainda) em `docs/DEPLOY-STAGING.md`.

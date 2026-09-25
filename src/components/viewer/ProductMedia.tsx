@@ -9,6 +9,8 @@ type ProductMediaProps = {
   name: string;
   hasModel: boolean;
   locale: AppLocale;
+  tenantId: string;
+  origin: string;
 };
 
 /**
@@ -16,7 +18,7 @@ type ProductMediaProps = {
  * `<model-viewer>` quando há modelo pronto (`hasModel`); senão, cai pra
  * foto de capa. O selo "Modelo 3D" só aparece com modelo de verdade.
  */
-export async function ProductMedia({ product, name, hasModel, locale }: ProductMediaProps) {
+export async function ProductMedia({ product, name, hasModel, locale, tenantId, origin }: ProductMediaProps) {
   // locale explícito: ver o comentário em loja/[tenant]/[locale]/page.tsx.
   const t = await getTranslations({ locale, namespace: "product" });
 
@@ -28,6 +30,10 @@ export async function ProductMedia({ product, name, hasModel, locale }: ProductM
           usdzUrl={product.model.usdzUrl}
           posterUrl={product.model.posterUrl}
           alt={name}
+          tenantId={tenantId}
+          productId={product.id}
+          locale={locale}
+          origin={origin}
         />
       ) : (
         product.coverImage && (

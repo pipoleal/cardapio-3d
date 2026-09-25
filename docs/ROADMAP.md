@@ -51,10 +51,10 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [x] Limite mensal de gerações por loja.
 
 ## Etapa 5 — Analytics
-- [ ] `POST /api/track` + helper `track()` no cliente (`sendBeacon`).
-- [ ] Contagem de visitas por origem (`stats.origin`, ver `lib/origin.ts` e `docs/MODELO-DE-DADOS.md`) — ler o header `x-origin` no Route Handler.
-- [ ] Visão geral **igual ao mockup 04**: 4 KPIs, produtos mais vistos, idiomas usados, coluna de modelos 3D, filtro de período.
-- [ ] Vercel Web Analytics no site do produto.
+- [x] `POST /api/track` + helper `track()` no cliente (`sendBeacon`).
+- [x] Contagem de visitas por origem (`stats.origin`, ver `lib/origin.ts` e `docs/MODELO-DE-DADOS.md`) — a página resolve `x-origin` (o Route Handler não recebe, ver `docs/ARQUITETURA.md`).
+- [x] Visão geral **igual ao mockup 04**: 4 KPIs, produtos mais vistos, idiomas usados, coluna de modelos 3D, filtro de período. Também: acessos por origem e funil "abriu 3D → WhatsApp" (fora do mockup original, pedido do Felipe).
+- [x] Vercel Web Analytics no site do produto.
 
 ## Etapa 6 — Site do produto + cadastro
 - [ ] Landing no domínio raiz: proposta, vídeo/GIF do AR, link para `demo.`, preços (placeholder), contato via WhatsApp.

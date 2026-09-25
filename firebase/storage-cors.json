@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["https://staging.cardapio3d.app"],
+    "method": ["GET", "PUT", "POST"],
+    "maxAgeSeconds": 3600
+  }
+]

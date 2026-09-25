@@ -1,12 +1,20 @@
+"use client";
+
+import { track } from "@/lib/track";
+
 type WhatsAppCtaProps = {
   href: string;
   label: string;
   caption?: string;
+  tenantId: string;
+  productId?: string;
+  locale: string;
+  origin: string;
 };
 
 // Barra fixa no rodapé (mockup 01/02). `<a>` estilizado direto (não usa o
 // Button de ui/) pra não aninhar um <button> dentro de um <a>.
-export function WhatsAppCta({ href, label, caption }: WhatsAppCtaProps) {
+export function WhatsAppCta({ href, label, caption, tenantId, productId, locale, origin }: WhatsAppCtaProps) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface px-4 py-3">
       <a
@@ -14,6 +22,7 @@ export function WhatsAppCta({ href, label, caption }: WhatsAppCtaProps) {
         target="_blank"
         rel="noopener noreferrer"
         data-testid="whatsapp-cta-prominent"
+        onClick={() => track("whatsapp_click", { tenantId, productId, locale, origin })}
         className="flex h-[52px] w-full items-center justify-center gap-2 rounded-cta bg-accent text-base font-medium text-surface hover:opacity-90"
       >
         <WhatsAppIcon />

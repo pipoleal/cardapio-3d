@@ -17,7 +17,9 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { FieldValue } from "firebase-admin/firestore";
+import { dateKeyInTimezone, DEFAULT_TIMEZONE } from "../src/lib/date-key";
 import { adminDb } from "../src/lib/firebase/admin-app";
 import type { Allergen } from "../src/lib/schemas/common";
 
@@ -300,7 +302,8 @@ const TENANT_WHATSAPP_TEMPLATE: LocalizedText = {
   es: "¡Hola! Quiero pedir {produto} ({variacao}).",
 };
 
-async function seed() {
+/** Exportado pra `scripts/seed-real.ts` reaproveitar (mesma loja demo, projeto real). */
+export async function seed() {
   console.log(`Seed: tenant "${TENANT_ID}"...`);
 
   await adminDb.collection("slugs").doc(TENANT_ID).set({
@@ -386,14 +389,112 @@ async function seed() {
       });
   }
 
+  await seedStats();
+
   console.log(
-    `Seed concluído: ${CATEGORIES.length} categorias, ${PRODUCTS.length} produtos (pt/en/es aprovados). Abra http://demo.localhost:3000`,
+    `Seed concluído: ${CATEGORIES.length} categorias, ${PRODUCTS.length} produtos (pt/en/es aprovados), 30 dias de estatísticas falsas. Abra http://demo.localhost:3000`,
   );
 }
 
-seed()
-  .then(() => process.exit(0))
-  .catch((error: unknown) => {
-    console.error("Seed falhou:", error);
-    process.exit(1);
-  });
+/**
+ * Gerador determinístico (semente = string) — mesmos números toda vez que
+ * o seed roda, pra a demo ficar sempre igual (screenshot, comparação com o
+ * mockup 04) em vez de mudar a cada `npm run seed`. Não precisa de
+ * qualidade criptográfica, só reprodutibilidade.
+ */
+function seededRandom(seed: string): () => number {
+  let h = 1779033703 ^ seed.length;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return () => {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+}
+
+const STATS_DAYS = 30;
+
+/**
+ * 30 dias de `stats/{AAAA-MM-DD}` fake (docs/MODELO-DE-DADOS.md) — pra
+ * "Visão geral" (mockup 04) não nascer vazia na demo. `.set()` sobrescreve
+ * o dia inteiro a cada execução (idempotente: nunca duplica).
+ */
+async function seedStats() {
+  console.log(`Seed: ${STATS_DAYS} dias de estatísticas falsas...`);
+
+  const bestsellerIds = new Set(PRODUCTS.filter((product) => product.tags?.includes("bestseller")).map((p) => p.id));
+
+  for (let daysAgo = STATS_DAYS - 1; daysAgo >= 0; daysAgo--) {
+    const date = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    const key = dateKeyInTimezone(date, DEFAULT_TIMEZONE);
+    const rand = seededRandom(key);
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+    const menuView = Math.round((15 + rand() * 45) * (isWeekend ? 1.3 : 1));
+
+    const productView: Record<string, number> = {};
+    const modelOpen: Record<string, number> = {};
+    const arOpen: Record<string, number> = {};
+    const whatsappClick: Record<string, number> = {};
+
+    for (const product of PRODUCTS) {
+      const productRand = seededRandom(`${key}:${product.id}`);
+      const weight = bestsellerIds.has(product.id) ? 2 : 1;
+      const views = Math.round(productRand() * 8 * weight);
+      if (views === 0) continue;
+      productView[product.id] = views;
+
+      const opens = Math.round(views * (0.2 + productRand() * 0.3));
+      if (opens > 0) modelOpen[product.id] = opens;
+
+      const ar = Math.round(opens * (0.1 + productRand() * 0.2));
+      if (ar > 0) arOpen[product.id] = ar;
+
+      const clicks = Math.round(opens * (0.1 + productRand() * 0.3));
+      if (clicks > 0) whatsappClick[product.id] = clicks;
+    }
+
+    const generalClicks = Math.round(rand() * 3);
+    if (generalClicks > 0) whatsappClick._geral = generalClicks;
+
+    const ptCount = Math.round(menuView * (0.65 + rand() * 0.1));
+    const enCount = Math.round((menuView - ptCount) * 0.6);
+    const esCount = Math.max(menuView - ptCount - enCount, 0);
+
+    const directCount = Math.round(menuView * (0.55 + rand() * 0.1));
+    const instagramCount = Math.round((menuView - directCount) * 0.6);
+    const lojaCount = Math.max(menuView - directCount - instagramCount, 0);
+
+    await adminDb
+      .collection("tenants")
+      .doc(TENANT_ID)
+      .collection("stats")
+      .doc(key)
+      .set({
+        menu_view: menuView,
+        product_view: productView,
+        model_open: modelOpen,
+        ar_open: arOpen,
+        whatsapp_click: whatsappClick,
+        locale: { pt: ptCount, en: enCount, es: esCount },
+        origin: { direto: directCount, instagram: instagramCount, loja: lojaCount },
+      });
+  }
+}
+
+// Só roda sozinho quando o arquivo é executado direto (`npm run seed`) —
+// `scripts/seed-real.ts` importa `{ seed }` daqui e não pode disparar isto
+// como efeito colateral do import (senão gravaria antes da confirmação).
+const isMainModule = process.argv[1] ? import.meta.url === pathToFileURL(process.argv[1]).href : false;
+if (isMainModule) {
+  seed()
+    .then(() => process.exit(0))
+    .catch((error: unknown) => {
+      console.error("Seed falhou:", error);
+      process.exit(1);
+    });
+}

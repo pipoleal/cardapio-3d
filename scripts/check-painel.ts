@@ -92,6 +92,12 @@ async function run() {
     );
     check((await page.getByRole("heading", { name: "Visão geral" }).count()) === 1, "Visão geral aparece");
     check((await page.locator("aside").getByText(OWNER_EMAIL).count()) === 1, "sidebar mostra o e-mail conectado");
+    // Precisa do "npm run seed" (com seedStats(), Etapa 5) já rodado antes
+    // — os 4 KPIs só saem de "—" com estatísticas de verdade no Firestore.
+    check(
+      (await page.getByText("—", { exact: true }).count()) === 0,
+      "KPIs da Visão geral saem de '—' depois do seed (precisa do seedStats)",
+    );
 
     // categoria
     await page.goto(`${BASE_URL}/painel/${TENANT_SLUG}/categorias`, { waitUntil: "networkidle" });
