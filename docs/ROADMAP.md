@@ -77,7 +77,17 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [ ] Configurar o webhook da Meshy no dashboard dela (URL + `MESHY_WEBHOOK_SECRET`) — o endpoint já existe (`POST /api/models/webhook/[provider]`), falta só o passo manual de deploy. Ver `docs/DEPLOY-STAGING.md`.
 
 ## Depois do piloto (backlog)
-- Rota "Vídeo · escaneamento" (fotogrametria) · modelo da fatia (alternador Inteiro | Fatia) · compressão GLB (gltf-transform) · editor de escala do modelo
+- Rota "Vídeo · escaneamento": extrai os melhores quadros do vídeo (ffmpeg + seleção por nitidez/
+  ângulo) e manda pro mesmo modelo multi-imagem da rota de fotos — fotogrametria (COLMAP+OpenMVS)
+  fica como plano B, não é a abordagem principal (decisão de 2026-09, ver pesquisa do worker 3D
+  próprio em `docs/DECISOES.md`) · modelo da fatia (alternador Inteiro | Fatia) · compressão GLB
+  (gltf-transform) · editor de escala do modelo
+- **Pendente de decisão** — worker 3D próprio (repo `cardapio-3d-worker`, teste comparativo em
+  andamento): se o **Hunyuan3D-2mv** vencer o teste comparativo (em vez do TRELLIS), as poses do
+  assistente de captura (`src/components/capture/CaptureFlow.tsx`, hoje `frente/45°/lateral/cima`)
+  precisam mudar pra `frente/esquerda/trás/direita/cima` — o Hunyuan espera ângulos nomeados
+  (front/left/back/right), não bate com as poses atuais. Não implementar antes do resultado do
+  teste.
 - Sacola de encomenda (vários itens em uma mensagem de WhatsApp)
 - Domínio próprio por loja · planos/cobrança · PWA · pedido na mesa
 - Limpeza das fotos de captura antigas no storage (hoje ficam pra sempre depois de gerar o modelo — só capa/logo/modelo 3D apagam o arquivo anterior ao trocar, ver `lib/three-d/jobs.ts`)
