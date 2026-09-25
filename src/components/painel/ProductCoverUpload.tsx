@@ -1,12 +1,10 @@
 "use client";
 
-import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ChangeEvent } from "react";
 import { setProductCover } from "@/lib/actions/products";
-import { storage } from "@/lib/firebase/client";
 import { compressImage } from "@/lib/image-compress";
-import { toPublicStorageUrl } from "@/lib/storage-url";
+import { uploadFile } from "@/lib/storage/upload-client";
 
 export function ProductCoverUpload({
   tenantId,
@@ -31,12 +29,12 @@ export function ProductCoverUpload({
     setError(null);
     try {
       const { blob, width, height } = await compressImage(file);
-      // Caminho fixo do storage.rules — reenviar sempre sobrescreve a mesma foto.
+      // Caminho "canônico" — no provider Firebase é fixo (sobrescreve
+      // sempre a mesma foto); no Vercel Blob ganha um sufixo aleatório e o
+      // arquivo anterior é apagado depois (ver setProductCover).
       const path = `tenants/${tenantId}/products/${productId}/cover.webp`;
-      const fileRef = storageRef(storage, path);
-      await uploadBytes(fileRef, blob, { contentType: "image/webp" });
-      const url = toPublicStorageUrl(await getDownloadURL(fileRef));
-      await setProductCover(tenantId, productId, { url, path, w: width, h: height });
+      const { url, path: savedPath } = await uploadFile(path, blob, { contentType: "image/webp", access: "public" });
+      await setProductCover(tenantId, productId, { url, path: savedPath, w: width, h: height });
       router.refresh();
     } catch {
       setError("Não foi possível enviar a foto.");

@@ -5,6 +5,7 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { localeSchema, mediaUrlSchema, whatsappModeSchema } from "@/lib/schemas/common";
+import { getStorageProvider } from "@/lib/storage";
 import { assertTenantOwner } from "./guard";
 
 // Espelha "Configurações" (mockup, nav do painel): nome, WhatsApp + modo,
@@ -51,15 +52,27 @@ export async function updateTenantSettings(tenantId: string, input: TenantSettin
   updateTag(`tenant:${tenant.id}`);
 }
 
-/** Chamado depois do upload direto pro Storage (SDK web) — só persiste a URL. */
-export async function setTenantLogo(tenantId: string, url: string): Promise<void> {
+const logoInputSchema = z.object({ url: mediaUrlSchema, path: z.string().min(1) });
+
+/**
+ * Chamado depois do upload direto pro storage (`lib/storage/upload-client.ts`)
+ * — só persiste a URL/caminho. Apaga o logo anterior do storage (se
+ * houver e for um caminho diferente — no provider Firebase o caminho é
+ * sempre fixo, `addRandomSuffix` só existe no Blob, então a troca nunca
+ * dispara um delete ali, o upload novo já sobrescreve no lugar).
+ */
+export async function setTenantLogo(tenantId: string, input: z.infer<typeof logoInputSchema>): Promise<void> {
   const { tenant } = await assertTenantOwner(tenantId);
-  const parsedUrl = mediaUrlSchema.parse(url);
+  const parsed = logoInputSchema.parse(input);
 
   await adminDb
     .collection("tenants")
     .doc(tenant.id)
-    .update({ logoUrl: parsedUrl, updatedAt: FieldValue.serverTimestamp() });
+    .update({ logoUrl: parsed.url, logoPath: parsed.path, updatedAt: FieldValue.serverTimestamp() });
 
   updateTag(`tenant:${tenant.id}`);
+
+  if (tenant.logoPath && tenant.logoPath !== parsed.path) {
+    await getStorageProvider().delete(tenant.logoPath, { access: "public" });
+  }
 }

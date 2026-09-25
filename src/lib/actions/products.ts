@@ -5,6 +5,8 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { allergenSchema, mediaUrlSchema } from "@/lib/schemas/common";
+import { getStorageProvider } from "@/lib/storage";
+import { deleteOldModelFiles } from "@/lib/three-d/jobs";
 import { assertTenantOwner } from "./guard";
 
 // Espelha os campos do mockup 05 (Informações): nome, categoria, preço,
@@ -143,7 +145,12 @@ const coverInputSchema = z.object({
   h: z.number().int().positive(),
 });
 
-/** Chamado depois do upload direto pro Storage (SDK web) — só persiste a referência no Firestore. */
+/**
+ * Chamado depois do upload direto pro storage (`lib/storage/upload-client.ts`)
+ * — só persiste a referência no Firestore. Apaga a capa anterior do
+ * storage (se houver e for um caminho diferente — ver comentário em
+ * `setTenantLogo`, `lib/actions/tenant.ts`).
+ */
 export async function setProductCover(
   tenantId: string,
   productId: string,
@@ -152,12 +159,62 @@ export async function setProductCover(
   const { tenant } = await assertTenantOwner(tenantId);
   const parsed = coverInputSchema.parse(cover);
 
-  await adminDb
-    .collection("tenants")
-    .doc(tenant.id)
-    .collection("products")
-    .doc(productId)
-    .update({ coverImage: parsed, updatedAt: FieldValue.serverTimestamp() });
+  const productRef = adminDb.collection("tenants").doc(tenant.id).collection("products").doc(productId);
+  const previousSnap = await productRef.get();
+  const previousPath = (previousSnap.data()?.coverImage as { path?: string } | undefined)?.path;
+
+  await productRef.update({ coverImage: parsed, updatedAt: FieldValue.serverTimestamp() });
 
   updateTag(`tenant:${tenant.id}`);
+
+  if (previousPath && previousPath !== parsed.path) {
+    await getStorageProvider().delete(previousPath, { access: "public" });
+  }
+}
+
+const modelUploadInputSchema = z.object({
+  glbUrl: mediaUrlSchema,
+  glbPath: z.string().min(1),
+  usdzUrl: mediaUrlSchema.optional(),
+  usdzPath: z.string().optional(),
+  fileSizeBytes: z.number().int().nonnegative(),
+});
+
+/**
+ * "Subir meu modelo" (card Modelo 3D, item d de docs/PIPELINE-3D.md) —
+ * chamado depois do upload direto pro storage (mesmo `uploadFile()` da
+ * capa/logo, store público). Sem `.usdz`: o AR funciona só no Android
+ * (Scene Viewer/WebXR) — o `<model-viewer>` não gera USDZ a partir do GLB
+ * sozinho, é só um visualizador (confirmado em `model-viewer.d.ts`,
+ * `iosSrc` é só uma propriedade de URL). Substitui `product.model`
+ * inteiro (sem `costCents`/`jobId`/`posterUrl` — não fazem sentido pra um
+ * upload manual) e apaga os arquivos do modelo anterior.
+ */
+export async function setProductModelUpload(
+  tenantId: string,
+  productId: string,
+  input: z.infer<typeof modelUploadInputSchema>,
+): Promise<void> {
+  const { tenant } = await assertTenantOwner(tenantId);
+  const parsed = modelUploadInputSchema.parse(input);
+
+  const productRef = adminDb.collection("tenants").doc(tenant.id).collection("products").doc(productId);
+  const previousSnap = await productRef.get();
+  const previousModel = previousSnap.data()?.model as Record<string, unknown> | undefined;
+
+  await productRef.update({
+    model: {
+      status: "ready",
+      glbUrl: parsed.glbUrl,
+      glbPath: parsed.glbPath,
+      ...(parsed.usdzUrl ? { usdzUrl: parsed.usdzUrl, usdzPath: parsed.usdzPath } : {}),
+      route: "upload",
+      fileSizeBytes: parsed.fileSizeBytes,
+      updatedAt: FieldValue.serverTimestamp(),
+    },
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  updateTag(`tenant:${tenant.id}`);
+  await deleteOldModelFiles(previousModel);
 }

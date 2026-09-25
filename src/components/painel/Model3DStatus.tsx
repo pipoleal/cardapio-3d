@@ -2,10 +2,12 @@
 
 import { doc, onSnapshot } from "firebase/firestore";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { setProductModelUpload } from "@/lib/actions/products";
 import { db } from "@/lib/firebase/client";
 import { formatPriceCents } from "@/lib/price";
 import type { Product } from "@/lib/schemas/product";
+import { uploadFile } from "@/lib/storage/upload-client";
 
 type Model = Product["model"];
 
@@ -19,7 +21,13 @@ const STATUS_LABEL: Record<Model["status"], string> = {
 const ROUTE_LABEL: Record<NonNullable<Model["route"]>, string> = {
   photos_ai: "Fotos (IA)",
   video_scan: "Vídeo (escaneamento)",
+  upload: "Upload manual",
 };
+
+// Mesmo limite do token gerado em /api/blob/upload/public/route.ts —
+// checagem no cliente só evita mandar um arquivo grande à toa; o servidor
+// já recusa de novo se driblar isso.
+const MAX_MODEL_BYTES = 50 * 1024 * 1024;
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -44,6 +52,11 @@ export function Model3DStatus({
   initialModel: Model;
 }) {
   const [model, setModel] = useState<Model>(initialModel);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const glbInputRef = useRef<HTMLInputElement>(null);
+  const usdzInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const ref = doc(db, "tenants", tenantId, "products", productId);
@@ -56,6 +69,65 @@ export function Model3DStatus({
   const hasAndroid = Boolean(model.glbUrl);
   const hasIos = Boolean(model.usdzUrl);
   const captureHref = `/painel/${tenantSlug}/captura?produto=${productId}`;
+
+  async function handleUploadSubmit() {
+    const glbFile = glbInputRef.current?.files?.[0];
+    const usdzFile = usdzInputRef.current?.files?.[0];
+    setUploadError(null);
+
+    if (!glbFile || !glbFile.name.toLowerCase().endsWith(".glb")) {
+      setUploadError("Selecione um arquivo .glb.");
+      return;
+    }
+    if (glbFile.size > MAX_MODEL_BYTES) {
+      setUploadError("Arquivo .glb maior que 50 MB.");
+      return;
+    }
+    if (usdzFile) {
+      if (!usdzFile.name.toLowerCase().endsWith(".usdz")) {
+        setUploadError("O arquivo opcional precisa ser .usdz.");
+        return;
+      }
+      if (usdzFile.size > MAX_MODEL_BYTES) {
+        setUploadError("Arquivo .usdz maior que 50 MB.");
+        return;
+      }
+    }
+
+    setUploading(true);
+    try {
+      const glbPath = `tenants/${tenantId}/products/${productId}/models/model.glb`;
+      const glb = await uploadFile(glbPath, glbFile, {
+        contentType: "model/gltf-binary",
+        access: "public",
+      });
+
+      let usdz: { url: string; path: string } | undefined;
+      if (usdzFile) {
+        const usdzPath = `tenants/${tenantId}/products/${productId}/models/model.usdz`;
+        usdz = await uploadFile(usdzPath, usdzFile, {
+          contentType: "model/vnd.usdz+zip",
+          access: "public",
+        });
+      }
+
+      await setProductModelUpload(tenantId, productId, {
+        glbUrl: glb.url,
+        glbPath: glb.path,
+        usdzUrl: usdz?.url,
+        usdzPath: usdz?.path,
+        fileSizeBytes: glbFile.size,
+      });
+
+      setShowUploadForm(false);
+      if (glbInputRef.current) glbInputRef.current.value = "";
+      if (usdzInputRef.current) usdzInputRef.current.value = "";
+    } catch {
+      setUploadError("Não foi possível enviar o modelo.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -105,12 +177,54 @@ export function Model3DStatus({
       )}
 
       {model.status !== "processing" && (
-        <Link
-          href={captureHref}
-          className="inline-flex min-h-11 items-center justify-center rounded-input border border-border text-sm font-medium text-ink hover:bg-bg"
-        >
-          {model.status === "none" ? "Gerar por fotos (IA)" : "Refazer captura"}
-        </Link>
+        <>
+          <Link
+            href={captureHref}
+            className="inline-flex min-h-11 items-center justify-center rounded-input border border-border text-sm font-medium text-ink hover:bg-bg"
+          >
+            {model.status === "none" ? "Gerar por fotos (IA)" : "Refazer captura"}
+          </Link>
+
+          {!showUploadForm ? (
+            <button
+              type="button"
+              onClick={() => setShowUploadForm(true)}
+              className="inline-flex min-h-11 items-center justify-center rounded-input border border-border text-sm font-medium text-ink hover:bg-bg"
+            >
+              Subir meu modelo
+            </button>
+          ) : (
+            <div className="flex flex-col gap-2 rounded-input border border-border p-3">
+              <label className="flex flex-col gap-1 text-xs text-muted">
+                Arquivo .glb (obrigatório)
+                <input ref={glbInputRef} type="file" accept=".glb" className="text-xs" />
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-muted">
+                Arquivo .usdz — opcional, precisa pra AR no iPhone (sem ele, só funciona no Android)
+                <input ref={usdzInputRef} type="file" accept=".usdz" className="text-xs" />
+              </label>
+              {uploadError && <p className="text-xs text-rec">{uploadError}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => void handleUploadSubmit()}
+                  className="min-h-9 flex-1 rounded-input bg-accent text-xs font-semibold text-surface disabled:opacity-50"
+                >
+                  {uploading ? "Enviando..." : "Enviar"}
+                </button>
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => setShowUploadForm(false)}
+                  className="min-h-9 flex-1 rounded-input border border-border text-xs font-medium text-ink"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -51,6 +51,23 @@ Quando for conectar num projeto Firebase de verdade (piloto em produção, por e
 `firebase login`, `firebase use --add`, preencha as chaves reais no `.env.local` e apague
 `NEXT_PUBLIC_USE_EMULATORS` (ou deixe `false`).
 
+### Testando o Vercel Blob local (antes do deploy)
+
+Capa, logo, fotos de captura e modelo 3D usam `STORAGE_PROVIDER` (`firebase`, padrão — Storage
+emulator; ou `vercel-blob` — produção/staging, ver `docs/DEPLOY-STAGING.md`). Pra testar o Vercel
+Blob local, sem esperar o deploy:
+
+1. Criar os 2 stores Blob (um público, um privado) e conectar ao projeto na Vercel — passo a
+   passo em `docs/DEPLOY-STAGING.md`, seção 3.
+2. `vercel env pull` copia os tokens reais pro `.env.local` (ou copie manualmente do dashboard).
+3. No `.env.local`, troque `STORAGE_PROVIDER` e `NEXT_PUBLIC_STORAGE_PROVIDER` pra `vercel-blob` e
+   preencha `BLOB_READ_WRITE_TOKEN_PUBLIC`/`BLOB_READ_WRITE_TOKEN_PRIVATE`.
+4. Reinicie `npm run dev`. Firestore/Auth continuam no emulador normalmente — só o storage muda.
+
+**Limitação conhecida:** o callback `onUploadCompleted` do Blob não alcança `localhost` (precisa
+de uma URL https pública) — não afeta nada, o app não depende dele pra persistir a URL do upload
+(a página já chama a Server Action assim que `upload()` resolve). É só um log que não aparece.
+
 ## Rodando no celular
 
 Pra abrir o cardápio no celular (mesma Wi-Fi do PC), usa

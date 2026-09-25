@@ -31,7 +31,7 @@ Cardápio virtual **multi-loja** em que o cliente final vê os produtos em **3D*
 | i18n | `next-intl` (pt, en, es) |
 | Auth | Firebase Authentication (e-mail/senha + Google) |
 | Banco | Cloud Firestore |
-| Arquivos | Cloud Storage for Firebase (fotos, GLB, USDZ) |
+| Arquivos | `StorageProvider` (`lib/storage/`): Firebase Storage emulator em dev, **Vercel Blob** em produção/staging (o Firebase real não tem Storage — sem plano Blaze, ver `docs/DECISOES.md`) |
 | Servidor | Route Handlers do Next + **Firebase Admin SDK** (nada de Cloud Functions no piloto) |
 | 3D / AR | `<model-viewer>` do Google (`@google/model-viewer`) |
 | Foto → 3D | Meshy API (atrás da interface `ModelProvider`, trocável por Tripo etc.) |
@@ -83,6 +83,7 @@ src/
     tenant.ts               # resolver loja a partir do host
     three-d/provider.ts     # interface ModelProvider
     three-d/meshy.ts        # implementação Meshy
+    storage/provider.ts     # interface StorageProvider (firebase em dev, vercel-blob em produção)
     translate/provider.ts   # interface Translator (fake em dev, Google em produção)
     whatsapp.ts             # monta link wa.me
     allergens.ts            # lista fixa de alergênicos

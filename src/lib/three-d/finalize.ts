@@ -1,6 +1,5 @@
 import "server-only";
-import { adminStorage } from "@/lib/firebase/admin";
-import { toPublicStorageUrl } from "@/lib/storage-url";
+import { getStorageProvider } from "@/lib/storage";
 import type { ModelTaskResult } from "./provider";
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -29,21 +28,6 @@ async function downloadToBuffer(url: string): Promise<Buffer> {
   return Buffer.from(await response.arrayBuffer());
 }
 
-/**
- * `models/{file}` é público (`storage.rules`) — em vez de URL assinada
- * (pensada pra arquivo privado, com token que expira), monta a URL
- * pública de download direto (formato REST do Storage, `?alt=media`, sem
- * token — não precisa, a leitura já é liberada pras regras).
- */
-function publicDownloadUrl(bucketName: string, path: string): string {
-  const encoded = encodeURIComponent(path);
-  const rawUrl =
-    process.env.NEXT_PUBLIC_USE_EMULATORS === "true"
-      ? `http://127.0.0.1:9199/v0/b/${bucketName}/o/${encoded}?alt=media`
-      : `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encoded}?alt=media`;
-  return toPublicStorageUrl(rawUrl);
-}
-
 export type FinalizedModel = {
   glbUrl: string;
   glbPath: string;
@@ -56,45 +40,53 @@ export type FinalizedModel = {
 /**
  * Baixa os outputs do provider (Meshy de verdade OU o `.gltf` de amostra
  * do fake — mesmo caminho pros dois, ver lib/three-d/fake.ts) e sobe pro
- * nosso Storage: as URLs do provider são temporárias/assinadas (regra 8
- * do CLAUDE.md — nunca salvar como definitiva).
+ * nosso storage (`StorageProvider`, Firebase em dev ou Vercel Blob em
+ * produção/staging — ver docs/DECISOES.md): as URLs do provider são
+ * temporárias/assinadas (regra 8 do CLAUDE.md — nunca salvar como
+ * definitiva). Modelos são sempre públicos, mesmo espírito de
+ * `storage.rules` (`models/{file}`, `allow read: if true`).
  */
 export async function finalizeModelOutputs(
   tenantId: string,
   productId: string,
   outputs: NonNullable<ModelTaskResult["outputs"]>,
 ): Promise<FinalizedModel> {
-  const bucket = adminStorage.bucket();
+  const storage = getStorageProvider();
   const basePath = `tenants/${tenantId}/products/${productId}/models`;
 
   const glbExt = extensionOf(outputs.glbUrl, "glb");
   const glbBuffer = await downloadToBuffer(outputs.glbUrl);
-  const glbPath = `${basePath}/model.${glbExt}`;
-  await bucket.file(glbPath).save(glbBuffer, { contentType: CONTENT_TYPES[glbExt] ?? "application/octet-stream" });
+  const glb = await storage.uploadBuffer(`${basePath}/model.${glbExt}`, glbBuffer, {
+    contentType: CONTENT_TYPES[glbExt] ?? "application/octet-stream",
+    access: "public",
+  });
 
   let usdzUrl: string | undefined;
   let usdzPath: string | undefined;
   if (outputs.usdzUrl) {
     const usdzBuffer = await downloadToBuffer(outputs.usdzUrl);
-    usdzPath = `${basePath}/model.usdz`;
-    await bucket.file(usdzPath).save(usdzBuffer, { contentType: CONTENT_TYPES.usdz });
-    usdzUrl = publicDownloadUrl(bucket.name, usdzPath);
+    const usdz = await storage.uploadBuffer(`${basePath}/model.usdz`, usdzBuffer, {
+      contentType: CONTENT_TYPES.usdz!,
+      access: "public",
+    });
+    usdzUrl = usdz.url;
+    usdzPath = usdz.path;
   }
 
   let posterUrl: string | undefined;
   if (outputs.thumbnailUrl) {
     const posterExt = extensionOf(outputs.thumbnailUrl, "png");
     const posterBuffer = await downloadToBuffer(outputs.thumbnailUrl);
-    const posterPath = `${basePath}/poster.${posterExt}`;
-    await bucket
-      .file(posterPath)
-      .save(posterBuffer, { contentType: CONTENT_TYPES[posterExt] ?? "application/octet-stream" });
-    posterUrl = publicDownloadUrl(bucket.name, posterPath);
+    const poster = await storage.uploadBuffer(`${basePath}/poster.${posterExt}`, posterBuffer, {
+      contentType: CONTENT_TYPES[posterExt] ?? "application/octet-stream",
+      access: "public",
+    });
+    posterUrl = poster.url;
   }
 
   return {
-    glbUrl: publicDownloadUrl(bucket.name, glbPath),
-    glbPath,
+    glbUrl: glb.url,
+    glbPath: glb.path,
     usdzUrl,
     usdzPath,
     posterUrl,

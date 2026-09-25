@@ -1,12 +1,11 @@
 "use client";
 
-import { ref as storageRef, uploadBytes } from "firebase/storage";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { cn } from "@/lib/cn";
-import { storage } from "@/lib/firebase/client";
 import { compressImage } from "@/lib/image-compress";
 import { checkPhotoQuality, type PhotoQuality } from "@/lib/photo-quality";
+import { uploadFile } from "@/lib/storage/upload-client";
 
 type Pose = { id: string; label: string; hint: string };
 
@@ -159,8 +158,8 @@ export function CaptureFlow({
         if (!photo) continue;
         const { blob } = await compressImage(photo.blob);
         const path = `tenants/${tenantId}/products/${productId}/captures/${captureId}/${p.id}.webp`;
-        await uploadBytes(storageRef(storage, path), blob, { contentType: "image/webp" });
-        inputPaths.push(path);
+        const uploaded = await uploadFile(path, blob, { contentType: "image/webp", access: "private" });
+        inputPaths.push(uploaded.path);
       }
 
       const response = await fetch("/api/models", {

@@ -141,9 +141,20 @@ describe("tenants/{tenantId}/products/{productId}/models/{file}", () => {
     await assertSucceeds(getBytes(ref(anonStorage(), path)));
   });
 
-  it("ninguém escreve pelo cliente, nem dono nem superadmin (só o servidor, Admin SDK)", async () => {
-    await assertFails(uploadBytes(ref(ownerStorage(), path), STUB_FILE));
-    await assertFails(uploadBytes(ref(superadminStorage(), path), STUB_FILE));
+  // Normalmente só o servidor escreve aqui (copiando da Meshy, Admin SDK
+  // ignora as regras) — mas "Subir meu modelo" (upload manual, card
+  // Modelo 3D) sobe direto do navegador, então o dono precisa poder.
+  it("dono e superadmin escrevem (upload manual); outro usuário e anônimo não", async () => {
+    await assertSucceeds(uploadBytes(ref(ownerStorage(), path), STUB_FILE, { contentType: "model/gltf-binary" }));
+    await assertSucceeds(
+      uploadBytes(ref(superadminStorage(), path), STUB_FILE, { contentType: "model/gltf-binary" }),
+    );
+    await assertFails(uploadBytes(ref(otherStorage(), path), STUB_FILE, { contentType: "model/gltf-binary" }));
+    await assertFails(uploadBytes(ref(anonStorage(), path), STUB_FILE, { contentType: "model/gltf-binary" }));
+  });
+
+  it("recusa contentType que não é modelo/binário genérico", async () => {
+    await assertFails(uploadBytes(ref(ownerStorage(), path), STUB_FILE, { contentType: "image/webp" }));
   });
 });
 

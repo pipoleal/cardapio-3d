@@ -29,7 +29,8 @@ function mapStatus(status: MeshyStatus): ModelTaskResult["status"] {
   }
 }
 
-type MeshyTaskResponse = {
+export type MeshyTaskResponse = {
+  id?: string;
   status: MeshyStatus;
   progress: number;
   model_urls?: { glb?: string; usdz?: string };
@@ -37,6 +38,24 @@ type MeshyTaskResponse = {
   task_error?: { message?: string };
   consumed_credits?: number;
 };
+
+/**
+ * Compartilhado entre o polling (`getTask`) e o webhook
+ * (`/api/models/webhook/meshy`) — o payload do webhook é "o objeto da
+ * task" (confirmado em docs.meshy.ai/en/api/webhooks), mesmo formato do
+ * `GET` que este parser já entende.
+ */
+export function parseMeshyTaskResponse(data: MeshyTaskResponse): ModelTaskResult {
+  return {
+    status: mapStatus(data.status),
+    progress: data.progress,
+    outputs: data.model_urls?.glb
+      ? { glbUrl: data.model_urls.glb, usdzUrl: data.model_urls.usdz, thumbnailUrl: data.thumbnail_url }
+      : undefined,
+    error: data.task_error?.message,
+    consumedCredits: data.consumed_credits,
+  };
+}
 
 /**
  * Sem SDK — a API da Meshy é só REST. `target_formats` já pede GLB e USDZ
@@ -75,15 +94,6 @@ export class MeshyModelProvider implements ModelProvider {
       throw new Error(`Meshy getTask falhou (${response.status}): ${await response.text()}`);
     }
     const data = (await response.json()) as MeshyTaskResponse;
-
-    return {
-      status: mapStatus(data.status),
-      progress: data.progress,
-      outputs: data.model_urls?.glb
-        ? { glbUrl: data.model_urls.glb, usdzUrl: data.model_urls.usdz, thumbnailUrl: data.thumbnail_url }
-        : undefined,
-      error: data.task_error?.message,
-      consumedCredits: data.consumed_credits,
-    };
+    return parseMeshyTaskResponse(data);
   }
 }

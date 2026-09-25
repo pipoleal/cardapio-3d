@@ -41,7 +41,7 @@ Reserva única de subdomínio.
   slug: string;                 // subdomínio
   name: string;
   description?: LocalizedText;
-  logoUrl?: string; coverUrl?: string;
+  logoUrl?: string; logoPath?: string; coverUrl?: string;
   whatsapp: string;             // E.164 sem "+", ex.: "5511999999999"
   whatsappTemplate?: LocalizedText; // "Olá! Quero encomendar {produto} ({variacao})"
   whatsappMode: "discreet" | "prominent" | "off"; // padrão "discreet". "prominent" = CTA fixo chamativo; "discreet" = sem CTA fixo, só dicas discretas; "off" = nenhum WhatsApp em lugar nenhum. Só vale pra origem instagram/direto — origem presencial sempre reduz "prominent" pra "discreet" ("off" continua "off", ver lib/origin.ts)
@@ -85,7 +85,7 @@ Reserva única de subdomínio.
     posterUrl?: string;
     jobId?: string;
     scale?: number;                 // ajuste de tamanho real no AR (metros)
-    route?: "photos_ai" | "video_scan";
+    route?: "photos_ai" | "video_scan" | "upload"; // "upload" = "Subir meu modelo" (manual, sem job)
     costCents?: number;             // custo da geração (mostrado no painel)
     fileSizeBytes?: number;
     updatedAt?: Timestamp;
@@ -143,10 +143,10 @@ Reserva única de subdomínio.
 > horário de funcionamento e template do WhatsApp juntos. Não existe aprovação parcial (ex.: nome aprovado
 > mas descrição não) — simplifica o "Aprovar tradução" do mockup 05 (Etapa 3) pra um botão só por entidade.
 
-## Storage
+## Storage (`StorageProvider`, `lib/storage/` — Firebase em dev, Vercel Blob em produção/staging)
 
 ```
-tenants/{tenantId}/branding/logo.webp, cover.webp
+tenants/{tenantId}/branding/logo.webp
 tenants/{tenantId}/products/{productId}/cover.webp
 tenants/{tenantId}/products/{productId}/captures/{captureId}/{pose}.webp   # captureId: gerado no cliente (crypto.randomUUID()), não é o jobId
 tenants/{tenantId}/products/{productId}/models/model.{glb|gltf}
@@ -154,5 +154,13 @@ tenants/{tenantId}/products/{productId}/models/model.usdz
 tenants/{tenantId}/products/{productId}/models/poster.{ext}
 ```
 
-Leitura pública de `branding/`, `cover.webp` e `models/`; `captures/` só para o dono e o servidor.
+Público (leitura de qualquer um): `branding/`, `cover.webp`, `models/`. Privado (só o dono e o
+servidor): `captures/` — nunca públicas, nem no Vercel Blob (store separado, ver
+`docs/DEPLOY-STAGING.md`).
+
+No provider Firebase esses caminhos são fixos (reenviar sobrescreve no mesmo lugar). No provider
+Vercel Blob, cada upload ganha um sufixo aleatório (`addRandomSuffix: true`) — o caminho salvo no
+Firestore (`coverImage.path`, `logoPath`, `model.glbPath`/`usdzPath`) é sempre o que o storage
+devolveu de verdade, nunca reconstruído a partir do padrão acima; o arquivo anterior é apagado
+depois de salvar o novo (capa/logo/modelo — fotos de captura ficam, limpeza futura, ver ROADMAP).
 `models/` usa nome fixo (não por jobId) — cada geração nova sobrescreve a anterior, mesmo raciocínio de `cover.webp`.

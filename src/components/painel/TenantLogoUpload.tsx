@@ -1,12 +1,10 @@
 "use client";
 
-import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ChangeEvent } from "react";
 import { setTenantLogo } from "@/lib/actions/tenant";
-import { storage } from "@/lib/firebase/client";
 import { compressImage } from "@/lib/image-compress";
-import { toPublicStorageUrl } from "@/lib/storage-url";
+import { uploadFile } from "@/lib/storage/upload-client";
 
 export function TenantLogoUpload({ tenantId, logoUrl }: { tenantId: string; logoUrl: string | undefined }) {
   const router = useRouter();
@@ -22,10 +20,8 @@ export function TenantLogoUpload({ tenantId, logoUrl }: { tenantId: string; logo
     try {
       const { blob } = await compressImage(file, { maxSize: 512 });
       const path = `tenants/${tenantId}/branding/logo.webp`;
-      const fileRef = storageRef(storage, path);
-      await uploadBytes(fileRef, blob, { contentType: "image/webp" });
-      const url = toPublicStorageUrl(await getDownloadURL(fileRef));
-      await setTenantLogo(tenantId, url);
+      const { url, path: savedPath } = await uploadFile(path, blob, { contentType: "image/webp", access: "public" });
+      await setTenantLogo(tenantId, { url, path: savedPath });
       router.refresh();
     } finally {
       setUploading(false);

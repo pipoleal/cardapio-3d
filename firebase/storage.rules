@@ -1,3 +1,7 @@
+// Só vale quando STORAGE_PROVIDER=firebase (padrão em dev, ver
+// docs/DECISOES.md) — o projeto de staging/produção usa Vercel Blob, que
+// não tem regras declarativas; a autorização de upload fica em código
+// (`lib/storage/authorize-upload.ts`, `onBeforeGenerateToken`).
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
@@ -11,15 +15,21 @@ service firebase.storage {
       return request.resource.size < maxMb * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
+    function isModel(maxMb) {
+      return request.resource.size < maxMb * 1024 * 1024
+        && request.resource.contentType.matches('model/.*|application/octet-stream');
+    }
 
+    // Limites alinhados com os tokens do Vercel Blob (adjustment 4 da
+    // Etapa "Vercel Blob") — mesmo teto nos dois providers.
     match /tenants/{tenantId}/branding/{file} {
       allow read: if true;
-      allow write: if isOwner(tenantId) && isImage(4);
+      allow write: if isOwner(tenantId) && isImage(2);
     }
 
     match /tenants/{tenantId}/products/{productId}/cover.webp {
       allow read: if true;
-      allow write: if isOwner(tenantId) && isImage(4);
+      allow write: if isOwner(tenantId) && isImage(8);
     }
 
     match /tenants/{tenantId}/products/{productId}/captures/{jobId}/{file} {
@@ -27,10 +37,13 @@ service firebase.storage {
       allow write: if isOwner(tenantId) && isImage(8);
     }
 
-    // GLB/USDZ/poster: escritos só pelo servidor (Admin SDK ignora as regras).
+    // GLB/USDZ/poster: normalmente só o servidor escreve (copiando da
+    // Meshy, Admin SDK ignora as regras) — mas o upload manual de modelo
+    // ("Subir meu modelo", card Modelo 3D) sobe .glb/.usdz DIRETO do
+    // navegador, então o dono também precisa poder escrever aqui.
     match /tenants/{tenantId}/products/{productId}/models/{file} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isOwner(tenantId) && isModel(50);
     }
   }
 }

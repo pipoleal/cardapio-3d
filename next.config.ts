@@ -27,19 +27,23 @@ const nextConfig: NextConfig = {
   },
   ...(devOrigins.length > 0 ? { allowedDevOrigins: devOrigins } : {}),
   images: {
-    // Capa de produto/logo (upload no painel, Etapa 3) vem do Storage —
-    // sem isso, o next/image recusa o host e QUEBRA a página inteira do
-    // cardápio pro cliente final (achado testando o upload de capa).
-    // Sem `search`: o token de download (`?alt=media&token=...`) muda a
-    // cada arquivo, não dá pra fixar. Em dev, as URLs já vêm reescritas
-    // pra `/__storage/...` (mesma origem — ver rewrites() e
+    // Capa de produto/logo/modelo vem do storage (Firebase em dev, Vercel
+    // Blob em produção/staging — `lib/storage/`) — sem isso, o next/image
+    // recusa o host e QUEBRA a página inteira do cardápio pro cliente
+    // final (achado testando o upload de capa, decisão nº 18). Os 3 hosts
+    // ficam sempre presentes, sem depender de env var — `STORAGE_PROVIDER`
+    // pode mudar em runtime (é lido em Server Actions/Route Handlers, não
+    // só no build), então o build precisa liberar os dois de qualquer
+    // jeito, ajuste explícito da Etapa "Vercel Blob". Sem `search` nos
+    // dois primeiros: o token de download (`?alt=media&token=...`) muda a
+    // cada arquivo, não dá pra fixar. Em dev com Firebase, as URLs já vêm
+    // reescritas pra `/__storage/...` (mesma origem — ver rewrites() e
     // lib/storage-url.ts), então o remotePattern de 127.0.0.1 é só um
     // reforço pra qualquer URL que escape desse helper.
     remotePatterns: [
-      ...(process.env.NEXT_PUBLIC_USE_EMULATORS === "true"
-        ? [{ protocol: "http" as const, hostname: "127.0.0.1", port: "9199", pathname: "/v0/b/**" }]
-        : []),
+      { protocol: "http" as const, hostname: "127.0.0.1", port: "9199", pathname: "/v0/b/**" },
       { protocol: "https" as const, hostname: "firebasestorage.googleapis.com", pathname: "/v0/b/**" },
+      { protocol: "https" as const, hostname: "*.public.blob.vercel-storage.com" },
     ],
     // Next 16: caminho local com query string exige `localPatterns` (senão
     // o next/image responde 400 e DERRUBA a página inteira do cardápio,

@@ -49,6 +49,14 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [x] Card "Modelo 3D" no editar produto: status, rota, custo, tamanho do arquivo, refazer.
 - [x] Selo "3D" nos cards dos produtos que têm modelo.
 - [x] Limite mensal de gerações por loja.
+- [x] **Armazenamento trocado pro Vercel Blob em produção/staging** (`StorageProvider`, `lib/storage/`) —
+      o Firebase real não vai ter Cloud Storage (sem plano Blaze). Firebase Storage emulator continua
+      em dev. Dois stores Blob (público: capa/logo/modelo 3D; privado: fotos de captura). Ver
+      `docs/DECISOES.md` e `docs/DEPLOY-STAGING.md`.
+- [x] Webhook `POST /api/models/webhook/[provider]` — finaliza um job sem depender do polling/painel
+      aberto; genérico, também serve pro futuro worker 3D próprio. Ver `docs/PIPELINE-3D.md`.
+- [x] Upload manual de modelo 3D ("Subir meu modelo", `.glb` obrigatório + `.usdz` opcional) no card
+      Modelo 3D — pra quando o lojista já tem um modelo pronto, sem precisar da Meshy.
 
 ## Etapa 5 — Analytics
 - [x] `POST /api/track` + helper `track()` no cliente (`sendBeacon`).
@@ -62,13 +70,14 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [ ] `/admin` do superadmin + `scripts/set-superadmin.ts`.
 
 ## Etapa 7 — Piloto
-- [ ] Deploy na Vercel com domínio curinga; Firebase em produção (Blaze + alerta de orçamento).
-- [ ] Regras testadas no emulador; `firebase deploy --only firestore:rules,storage`.
+- [ ] Deploy na Vercel com domínio curinga; Firebase em produção (Firestore + Auth, plano Spark — sem Storage, ver `docs/DECISOES.md`); Vercel Blob (2 stores) — checklist completo em `docs/DEPLOY-STAGING.md`.
+- [ ] Regras testadas no emulador; `firebase deploy --only firestore:rules,firestore:indexes` (sem `storage` — `storage.rules` só vale pro emulador).
 - [ ] Cadastrar a confeitaria real e capturar os produtos.
 - [ ] Coletar feedback por 2–4 semanas.
-- [ ] **Finalização do pipeline 3D sem depender do painel aberto:** hoje só o polling (`ModelJobsPoller`) avança um job — em produção, sem ninguém com o painel aberto, um job "processing" nunca termina de finalizar (ficaria "processando" até o timeout de 24h). A Meshy tem webhooks (configurados por conta inteira, no dashboard, URL HTTPS — não por request), ou dá pra rodar uma tarefa agendada (Vercel Cron) que sonda `modelJobs` em `processing` periodicamente. Ver `docs/PIPELINE-3D.md`, "Fase 2".
+- [ ] Configurar o webhook da Meshy no dashboard dela (URL + `MESHY_WEBHOOK_SECRET`) — o endpoint já existe (`POST /api/models/webhook/[provider]`), falta só o passo manual de deploy. Ver `docs/DEPLOY-STAGING.md`.
 
 ## Depois do piloto (backlog)
 - Rota "Vídeo · escaneamento" (fotogrametria) · modelo da fatia (alternador Inteiro | Fatia) · compressão GLB (gltf-transform) · editor de escala do modelo
 - Sacola de encomenda (vários itens em uma mensagem de WhatsApp)
 - Domínio próprio por loja · planos/cobrança · PWA · pedido na mesa
+- Limpeza das fotos de captura antigas no storage (hoje ficam pra sempre depois de gerar o modelo — só capa/logo/modelo 3D apagam o arquivo anterior ao trocar, ver `lib/three-d/jobs.ts`)

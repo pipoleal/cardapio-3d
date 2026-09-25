@@ -13,6 +13,7 @@ export const tenantSchema = z.object({
   name: z.string(),
   description: localizedTextSchema.optional(),
   logoUrl: z.string().optional(),
+  logoPath: z.string().optional(),
   coverUrl: z.string().optional(),
   whatsapp: z.string(),
   whatsappTemplate: localizedTextSchema.optional(),

@@ -5,7 +5,9 @@
     { "collectionGroup": "products", "queryScope": "COLLECTION",
       "fields": [ { "fieldPath": "available", "order": "ASCENDING" }, { "fieldPath": "order", "order": "ASCENDING" } ] },
     { "collectionGroup": "modelJobs", "queryScope": "COLLECTION",
-      "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] }
+      "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] },
+    { "collectionGroup": "modelJobs", "queryScope": "COLLECTION_GROUP",
+      "fields": [ { "fieldPath": "providerTaskId", "order": "ASCENDING" } ] }
   ],
   "fieldOverrides": []
 }

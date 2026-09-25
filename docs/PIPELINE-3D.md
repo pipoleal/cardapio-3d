@@ -41,7 +41,15 @@ GET  /api/models/{jobId}?tenantSlug=
 - O painel faz **polling a cada 5 s** (com backoff até 30 s) enquanto houver job em `processing` — não só na tela do produto: o `ModelJobsPoller` monta no layout do painel (`painel/[tenantSlug]/layout.tsx`) e sonda todo job ativo da loja em qualquer página, então o pipeline avança mesmo que a dona tenha saído da tela do produto. O card do produto (`Model3DStatus.tsx`) também escuta o doc via `onSnapshot` pra atualizar na hora, sem esperar o próprio poll.
 - **Idempotência:** o `GET` usa uma transação para que só uma requisição faça a cópia para o Storage (flag `job.finalizing`).
 - **Job "travado":** um job em `processing` há mais de 24h é marcado `failed` automaticamente na próxima sondagem (evita ficar preso pra sempre se a Meshy nunca responder).
-- **Fase 2 (ver ROADMAP Etapa 7):** trocar o polling por webhook do provedor — a Meshy tem webhooks, mas são configurados por conta inteira no dashboard (URL HTTPS, máx. 5/conta), não por request; em produção sem webhook configurado, o pipeline só avança enquanto alguém tiver o painel aberto (nada roda em background) — considerar uma tarefa agendada (cron) como alternativa.
+- **Webhook (implementado, opcional):** `POST /api/models/webhook/[provider]` finaliza um job assim
+  que o provedor termina, sem depender do painel estar aberto (a Meshy chama a gente, não o
+  contrário) — a mesma lógica de finalização de `lib/three-d/jobs.ts` (`applyModelTaskResult`),
+  compartilhada com o polling. A Meshy configura o webhook por conta inteira no dashboard (URL
+  HTTPS, máx. 5/conta, não por request) e **não assina a requisição** (confirmado na doc) — a
+  autenticação é um segredo na própria URL (`?token=`, `MESHY_WEBHOOK_SECRET`). Genérico por
+  `[provider]` de propósito: serve pro futuro worker 3D próprio também. Configurar isso é um passo
+  manual de deploy (`docs/DEPLOY-STAGING.md`) — o polling continua funcionando de qualquer jeito,
+  então o pipeline nunca fica travado só porque o webhook não foi configurado ainda.
 - **Tempo limite da Vercel:** o download e o upload de ~20 MB cabem no limite padrão; se passar disso, fazer streaming (`fetch` → `file.createWriteStream`).
 
 ## 3. Interface de provedor (`lib/three-d/provider.ts`)

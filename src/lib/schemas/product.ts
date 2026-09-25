@@ -16,7 +16,7 @@ export const productModelSchema = z.object({
   posterUrl: z.string().optional(),
   jobId: z.string().optional(),
   scale: z.number().optional(),
-  route: z.enum(["photos_ai", "video_scan"]).optional(),
+  route: z.enum(["photos_ai", "video_scan", "upload"]).optional(),
   costCents: z.number().optional(),
   fileSizeBytes: z.number().optional(),
   updatedAt: z.date().optional(),

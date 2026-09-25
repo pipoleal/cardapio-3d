@@ -3,18 +3,20 @@
 ## Visão geral
 
 ```
-                    ┌──────────────────────── Vercel (Next.js) ────────────────────────┐
- cliente final ───▶ │ proxy.ts (host → tenant)                                          │
- (celular)          │   ├─ <DOMINIO>              → (site) landing / cadastro / entrar  │
-                    │   ├─ <DOMINIO>/painel/<slug> → painel (client + regras)           │
- lojista ─────────▶ │   ├─ <slug>.<DOMINIO>       → /loja/[tenant]/[locale]  (RSC)      │
-                    │   │      (/painel aqui redireciona pro painel no domínio raiz)    │
-                    │   └─ /api/*  Route Handlers (Admin SDK, chave Meshy)              │
-                    └───────┬──────────────────────────────┬───────────────────────────┘
-                            │                              │
-                   Firebase │ Auth · Firestore · Storage   │ HTTPS
-                            ▼                              ▼
-                      dados + arquivos               Meshy API (foto → GLB/USDZ)
+                    ┌──────────────────────── Vercel (Next.js) ─────────────────────────────┐
+ cliente final ───▶ │ proxy.ts (host → tenant)                                               │
+ (celular)          │   ├─ <DOMINIO>              → (site) landing / cadastro / entrar       │
+                    │   ├─ <DOMINIO>/painel/<slug> → painel (client + regras)                │
+ lojista ─────────▶ │   ├─ <slug>.<DOMINIO>       → /loja/[tenant]/[locale]  (RSC)           │
+                    │   │      (/painel aqui redireciona pro painel no domínio raiz)         │
+                    │   └─ /api/*  Route Handlers (Admin SDK, chave Meshy)                   │
+                    └───────┬──────────────────┬──────────────────────┬─────────────────────┘
+                            │                  │                     │
+                   Firebase │ Auth · Firestore │ StorageProvider     │ HTTPS
+                            ▼                  ▼ (lib/storage/)     ▼
+                        dados             Vercel Blob (prod)   Meshy API (foto → GLB/USDZ)
+                                          Firebase Storage
+                                          emulator (dev)
 ```
 
 ## Fluxos principais
@@ -102,11 +104,14 @@ O proxy expõe o resultado pras páginas via header `x-origin` (recalculado a ca
 
 ## Segurança
 
-- Regras do Firestore/Storage em `firebase/` (versionadas, testadas no emulador).
+- Regras do Firestore em `firebase/` (versionadas, testadas no emulador). `storage.rules` só vale
+  pro provider Firebase (emulador, sempre em dev — ver `docs/DECISOES.md`); em produção/staging
+  (Vercel Blob) não existe regra declarativa, a autorização de upload é código de verdade em
+  `lib/storage/authorize-upload.ts` (dono do tenant ou superadmin, `onBeforeGenerateToken`).
 - Custom claim `role: "superadmin"` definida por script (`scripts/set-superadmin.ts`).
 - Route Handlers verificam o ID token (`Authorization: Bearer <idToken>`) com o Admin SDK e checam a posse do tenant.
-- Upload: só imagens (`image/jpeg|png|webp`), ≤ 8 MB cada, com compressão no cliente antes de enviar (≈ 2048px, qualidade 0,85).
-- GLB ≤ 15 MB; USDZ ≤ 20 MB.
+- Upload: só imagens (`image/jpeg|png|webp`), logo ≤ 2 MB, capa e fotos de captura ≤ 8 MB cada, com compressão no cliente antes de enviar (≈ 2048px, qualidade 0,85).
+- Modelo 3D (gerado pela Meshy ou upload manual, "Subir meu modelo") ≤ 50 MB.
 
 ## Performance
 
@@ -116,6 +121,11 @@ O proxy expõe o resultado pras páginas via header `x-origin` (recalculado a ca
 
 ## Custos a ficar de olho
 
-- **Firebase Storage** exige o plano **Blaze** (pago conforme o uso, com cota grátis) para buckets novos desde out/2024. Configure **alerta de orçamento** no Google Cloud logo no início.
+- **Vercel Blob** (armazenamento de arquivo, produção/staging — ver `docs/DECISOES.md`): grátis no
+  Hobby até 1 GB de armazenamento, 2.000 operações avançadas e 10.000 simples, 10 GB de
+  transferência por mês; estourar não cobra, só bloqueia o Blob por 30 dias.
+- **Firebase**: sem o plano Blaze por enquanto (Firestore/Auth funcionam no Spark, grátis) — se
+  algum dia precisar de outra feature paga do Firebase (ex. voltar a usar Cloud Storage), reavaliar
+  Blaze + alerta de orçamento no Google Cloud.
 - **Meshy:** cobra créditos por modelo gerado. Limite de gerações por loja/mês (`tenant.limits.modelsPerMonth`).
 - **Vercel Hobby** é para uso não comercial; quando houver loja pagante, migrar para o Pro (ou avaliar o Firebase App Hosting).
