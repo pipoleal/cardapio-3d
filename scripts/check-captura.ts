@@ -111,8 +111,8 @@ async function run() {
     });
   }
 
-  await page.getByRole("heading", { name: "Revisar fotos" }).waitFor({ timeout: 5000 }).catch(() => null);
-  check((await page.getByRole("heading", { name: "Revisar fotos" }).count()) === 1, "chega na revisão depois das 4 fotos");
+  await page.getByText("Revisar fotos", { exact: true }).waitFor({ timeout: 5000 }).catch(() => null);
+  check((await page.getByText("Revisar fotos", { exact: true }).count()) === 1, "chega na revisão depois das 4 fotos");
   check((await page.getByRole("button", { name: "Refazer" }).count()) === 4, "4 miniaturas com botão 'Refazer'");
 
   await page.getByRole("button", { name: "Gerar 3D" }).click();

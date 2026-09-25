@@ -42,13 +42,13 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [x] Testes das regras do Firestore/Storage (`@firebase/rules-unit-testing`, `npm run test:rules`) e verificação visual em 1440px contra os mockups 04/05 (`npm run screenshot-painel`).
 
 ## Etapa 4 — 3D e AR
-- [ ] `ModelProvider` + `MeshyProvider`.
-- [ ] Assistente de captura **igual ao mockup 03** (rota "Fotos · IA"; aba "Vídeo · escaneamento" com o selo "em breve").
-- [ ] `POST /api/models` e `GET /api/models/[jobId]`, com cópia para o Storage.
-- [ ] `ProductViewer` com AR no mockup 02 (testar em Android **e** iPhone reais).
-- [ ] Card "Modelo 3D" no editar produto: status, rota, custo, tamanho do arquivo, refazer.
-- [ ] Selo "3D" nos cards dos produtos que têm modelo.
-- [ ] Limite mensal de gerações por loja.
+- [x] `ModelProvider` + `MeshyProvider` (+ `FakeModelProvider` pro dev, sem custo).
+- [x] Assistente de captura **igual ao mockup 03** (rota "Fotos · IA"; aba "Vídeo · escaneamento" com o selo "em breve").
+- [x] `POST /api/models` e `GET /api/models/[jobId]`, com cópia para o Storage.
+- [x] `ProductViewer` com AR no mockup 02 (testado no fluxo automatizado + fake provider; **falta** testar em Android e iPhone reais via HTTPS/mkcert — ver README).
+- [x] Card "Modelo 3D" no editar produto: status, rota, custo, tamanho do arquivo, refazer.
+- [x] Selo "3D" nos cards dos produtos que têm modelo.
+- [x] Limite mensal de gerações por loja.
 
 ## Etapa 5 — Analytics
 - [ ] `POST /api/track` + helper `track()` no cliente (`sendBeacon`).
@@ -66,6 +66,7 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [ ] Regras testadas no emulador; `firebase deploy --only firestore:rules,storage`.
 - [ ] Cadastrar a confeitaria real e capturar os produtos.
 - [ ] Coletar feedback por 2–4 semanas.
+- [ ] **Finalização do pipeline 3D sem depender do painel aberto:** hoje só o polling (`ModelJobsPoller`) avança um job — em produção, sem ninguém com o painel aberto, um job "processing" nunca termina de finalizar (ficaria "processando" até o timeout de 24h). A Meshy tem webhooks (configurados por conta inteira, no dashboard, URL HTTPS — não por request), ou dá pra rodar uma tarefa agendada (Vercel Cron) que sonda `modelJobs` em `processing` periodicamente. Ver `docs/PIPELINE-3D.md`, "Fase 2".
 
 ## Depois do piloto (backlog)
 - Rota "Vídeo · escaneamento" (fotogrametria) · modelo da fatia (alternador Inteiro | Fatia) · compressão GLB (gltf-transform) · editor de escala do modelo
