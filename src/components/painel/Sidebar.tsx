@@ -11,6 +11,7 @@ const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Cardápio 3D";
 
 const NAV_ITEMS = [
   { href: "", label: "Visão geral" },
+  { href: "/categorias", label: "Categorias" },
   { href: "/produtos", label: "Produtos" },
   { href: "/captura", label: "Captura 3D" },
   { href: "/traducoes", label: "Traduções" },

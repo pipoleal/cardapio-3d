@@ -75,7 +75,7 @@ A cor principal da loja (`tenant.theme.primary`) substitui `--color-accent` por 
 - Botão de captura grande e redondo no rodapé.
 
 ### 04 · Visão geral (painel)
-- **Sidebar escura** (`--color-ink`, 296px): nome do produto (Fraunces), seletor de loja (para o superadmin, que tem várias), navegação **Visão geral · Produtos · Captura 3D · Traduções · QR Code · Configurações**, e "Conectado como" no rodapé. O item ativo fica em card claro.
+- **Sidebar escura** (`--color-ink`, 296px): nome do produto (Fraunces), seletor de loja (para o superadmin, que tem várias), navegação **Visão geral · Categorias · Produtos · Captura 3D · Traduções · QR Code · Configurações**, e "Conectado como" no rodapé. O item ativo fica em card claro. ("Categorias" não estava no mockup original — sem ela, uma loja nova (sem nenhuma categoria ainda) não tinha como chegar em `/categorias` pela UI; achado testando o `create-tenant` em staging, ver `docs/DECISOES.md`.)
 - Cabeçalho: "Visão geral" + subtítulo; à direita, o filtro de período ("Últimos 7 dias") e o botão accent **"Marcar 'saiu do forno'"**.
 - 4 KPIs: Acessos ao cardápio · Aberturas do 3D · Aberturas em AR · **Cliques no WhatsApp** (este em destaque, com fundo escuro).
 - Tabela "Produtos mais vistos" (Viram em 3D / Abriram AR / WhatsApp) + barra empilhada "Idiomas usados".
