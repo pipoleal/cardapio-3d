@@ -5,9 +5,10 @@
     { "collectionGroup": "products", "queryScope": "COLLECTION",
       "fields": [ { "fieldPath": "available", "order": "ASCENDING" }, { "fieldPath": "order", "order": "ASCENDING" } ] },
     { "collectionGroup": "modelJobs", "queryScope": "COLLECTION",
-      "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] },
-    { "collectionGroup": "modelJobs", "queryScope": "COLLECTION_GROUP",
-      "fields": [ { "fieldPath": "providerTaskId", "order": "ASCENDING" } ] }
+      "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    { "collectionGroup": "modelJobs", "fieldPath": "providerTaskId",
+      "indexes": [ { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" } ] }
+  ]
 }
