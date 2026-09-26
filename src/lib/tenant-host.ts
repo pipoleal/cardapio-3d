@@ -20,7 +20,20 @@ export type HostResolution = { kind: "root" } | { kind: "tenant"; slug: string }
 export type ProxyRoute =
   | { kind: "site" }
   | { kind: "painel"; slug: string }
-  | { kind: "loja"; slug: string };
+  // `pathname`: path efetivo da loja, já sem prefixo de tenant — igual ao
+  // `pathname` original no modo subdomínio; sem o `/l/<slug>` no modo por
+  // caminho (`pathTenantMode`, staging sem DNS curinga).
+  // `tenantPrefix`: decidido AQUI, por requisição — nunca só pela flag
+  // global `pathTenantMode` (bug real encontrado testando: com a flag
+  // ligada, uma requisição por SUBDOMÍNIO também acabava ganhando o prefixo
+  // `/l/<slug>` nos redirects, porque a decisão dependia só da flag, não de
+  // como a requisição chegou de verdade). `""` no modo subdomínio, sempre —
+  // só a rota casada pelo padrão `/l/<slug>` carrega o prefixo.
+  | { kind: "loja"; slug: string; pathname: string; tenantPrefix: string };
+
+// Match de "/l/<slug>" ou "/l/<slug>/resto/do/path" — usado só quando
+// `pathTenantMode` está ligado (ver `resolveProxyRoute`).
+const PATH_TENANT_PATTERN = /^\/l\/([^/]+)(\/.*)?$/;
 
 function stripPort(host: string): string {
   const colonIndex = host.indexOf(":");
@@ -71,9 +84,18 @@ export function resolveTenantHost(
  * "http://demo.localhost:3000" em dev). Porta no `rootDomain` = sinal de
  * dev/local (http); sem porta = produção (https). Usado pra montar links
  * absolutos (landing → loja demo, mensagem do WhatsApp → link do produto).
+ *
+ * `pathTenantMode`: staging sem DNS curinga (ver `docs/DECISOES.md`) — usa
+ * `<rootDomain>/l/<slug>` em vez de `<slug>.<rootDomain>`. Produção de
+ * verdade (subdomínio) nunca passa `true` aqui.
  */
-export function buildTenantOrigin(tenantSlug: string, rootDomain: string): string {
+export function buildTenantOrigin(
+  tenantSlug: string,
+  rootDomain: string,
+  pathTenantMode = false,
+): string {
   const protocol = rootDomain.includes(":") ? "http" : "https";
+  if (pathTenantMode) return `${protocol}://${rootDomain}/l/${tenantSlug}`;
   return `${protocol}://${tenantSlug}.${rootDomain}`;
 }
 
@@ -82,12 +104,23 @@ export function resolveProxyRoute(
   pathname: string,
   rootDomain: string,
   extraDomains: readonly string[] = [],
+  pathTenantMode = false,
 ): ProxyRoute {
   const hostResolution = resolveTenantHost(rawHost, rootDomain, extraDomains);
-  if (hostResolution.kind === "root") return { kind: "site" };
+  if (hostResolution.kind === "tenant") {
+    const isPainel = pathname === "/painel" || pathname.startsWith("/painel/");
+    return isPainel
+      ? { kind: "painel", slug: hostResolution.slug }
+      : { kind: "loja", slug: hostResolution.slug, pathname, tenantPrefix: "" };
+  }
 
-  const isPainel = pathname === "/painel" || pathname.startsWith("/painel/");
-  return isPainel
-    ? { kind: "painel", slug: hostResolution.slug }
-    : { kind: "loja", slug: hostResolution.slug };
+  if (pathTenantMode) {
+    const match = pathname.match(PATH_TENANT_PATTERN);
+    if (match) {
+      const [, slug, rest] = match;
+      return { kind: "loja", slug: slug!, pathname: rest || "/", tenantPrefix: `/l/${slug}` };
+    }
+  }
+
+  return { kind: "site" };
 }

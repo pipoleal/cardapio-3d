@@ -28,6 +28,8 @@ Project Settings → Environment Variables. Todas as de `.env.example`, com valo
   uma conta de serviço em Project Settings → Service accounts → "Generate new private key".
 - `NEXT_PUBLIC_USE_EMULATORS=false`.
 - `NEXT_PUBLIC_ROOT_DOMAIN=<domínio de staging>` (ver seção 6).
+- `NEXT_PUBLIC_PATH_TENANT_MODE=true` — enquanto não tem domínio com subdomínio curinga (seção 7),
+  acessa a loja por `<host>/l/<slug>` em vez de `<slug>.<host>` (decisão nº 26).
 - `STORAGE_PROVIDER=vercel-blob` e `NEXT_PUBLIC_STORAGE_PROVIDER=vercel-blob` (seção 3).
 - `MODEL_PROVIDER=meshy` + `MESHY_API_KEY` — **cuidado com custo**: cada geração gasta crédito de
   verdade. Considere deixar `MODEL_PROVIDER=fake` em staging até o dia de testar a Meshy/AR de
@@ -38,13 +40,14 @@ Project Settings → Environment Variables. Todas as de `.env.example`, com valo
 ## 3. Vercel Blob: dois stores (público e privado)
 
 Um store Blob nasce público OU privado — não dá pra misturar nem trocar depois de criado — por
-isso são **dois stores**, um pra cada nível de acesso:
+isso são **dois stores**, um pra cada nível de acesso. Os stores **`cardapio-3d-public`** e
+**`cardapio-3d-private`** (região `gru1`) já existem — só falta **conectar** ao projeto:
 
-1. Project → Storage → Create → **Blob**.
-   - Store 1: nome "public", access **Public**. Conectar ao projeto com o prefixo de env var
+1. Project → Storage → selecionar o store existente → **Connect Project**.
+   - `cardapio-3d-public` (access **Public**): conectar com o prefixo de env var
      `BLOB_READ_WRITE_TOKEN_PUBLIC` (Advanced Options ao conectar) — cobre capa, logo e o upload
      manual de modelo 3D.
-   - Store 2: nome "private", access **Private**. Conectar com o prefixo
+   - `cardapio-3d-private` (access **Private**): conectar com o prefixo
      `BLOB_READ_WRITE_TOKEN_PRIVATE` — cobre as fotos de captura (nunca públicas).
 2. Marcar os ambientes **Production**, **Preview** e (se for testar local antes do deploy, ver
    abaixo) **Development** ao conectar cada store.
@@ -87,11 +90,11 @@ Authentication → Settings → Authorized domains: adicionar o **domínio raiz*
 login só roda lá, nunca no subdomínio da loja — decisão nº 16 em `DECISOES.md`, Firebase Auth não
 aceita curinga `*.dominio` nessa lista).
 
-Se for testar antes do domínio final estar apontado, por uma URL da própria Vercel: use a
-**URL fixa da branch** (Vercel Git Integration dá um alias estável por branch, no formato
-`<projeto>-git-<branch>-<time>.vercel.app`, que não muda a cada deploy) — **nunca** a URL de um
-deploy específico (`<projeto>-<hash>-<time>.vercel.app`), que muda a cada `git push` e obrigaria
-reconfigurar o Auth toda hora.
+Antes do domínio final estar apontado, usar `vercel --prod` (não um deploy de preview/branch) —
+isso dá a URL fixa do **projeto** (`<projeto>.vercel.app`, sem hash nem nome de branch), que não
+muda entre deploys. Essa é a URL que vai em `NEXT_PUBLIC_ROOT_DOMAIN` e nos domínios autorizados do
+Auth. (Uma URL de deploy específico, `<projeto>-<hash>-<time>.vercel.app`, muda a cada `git push` e
+obrigaria reconfigurar o Auth toda hora — evitar.)
 
 ## 6. Regras e índices do Firestore
 
@@ -105,8 +108,8 @@ arquivo.) As regras já são testadas no emulador (`npm run test:rules`) antes d
 ## 7. Domínio + subdomínio curinga
 
 A Vercel **não dá subdomínio curinga em `*.vercel.app`** — cada deploy tem sua própria URL, não
-controlável pelo app. Testar multi-tenant por subdomínio em staging exige um domínio de verdade
-(nem que seja barato/temporário):
+controlável pelo app. Testar multi-tenant por subdomínio de verdade em staging exige um domínio
+próprio (nem que seja barato/temporário):
 
 1. Comprar/usar um domínio (ex. um `.xyz` barato).
 2. Vercel → Project → Domains → adicionar `staging.<domínio>` **e** `*.staging.<domínio>`.
@@ -115,6 +118,11 @@ controlável pelo app. Testar multi-tenant por subdomínio em staging exige um d
 
 Sem atalho gratuito só com o domínio da Vercel — mesma limitação que já descartou usar ngrok no
 dev (ver decisão nº 20, mkcert).
+
+**Enquanto não tem esse domínio**: `NEXT_PUBLIC_PATH_TENANT_MODE=true` (decisão nº 26) dá acesso à
+loja por `<host>/l/<slug>/...` na própria URL fixa `.vercel.app` — cobre o teste no celular (painel,
+captura, cardápio, QR code) sem esperar um domínio próprio. Trocar pra `false` quando o domínio com
+subdomínio curinga estiver configurado (produção de verdade nunca usa esse modo).
 
 ## 8. Cadastro de loja sem a Etapa 6 pronta
 

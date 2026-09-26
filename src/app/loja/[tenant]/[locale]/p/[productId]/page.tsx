@@ -10,7 +10,7 @@ import { ProductPurchasePanel } from "@/components/menu/ProductPurchasePanel";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { ArButton } from "@/components/viewer/ArButton";
 import { ProductMedia } from "@/components/viewer/ProductMedia";
-import { buildExternalPath } from "@/i18n/resolve-locale";
+import { buildExternalPath, tenantPathPrefix } from "@/i18n/resolve-locale";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveLocalizedText } from "@/lib/localized-text";
 import { getMenu } from "@/lib/menu";
@@ -98,6 +98,9 @@ export default async function ProductPage(
 
   const { tenant, product } = result;
 
+  const pathTenantMode = process.env.NEXT_PUBLIC_PATH_TENANT_MODE === "true";
+  const tenantPrefix = tenantPathPrefix(pathTenantMode, tenantSlug);
+
   // locale explícito: sem isso, getTranslations() às vezes resolve a
   // config errada (corrida de cache do next-intl — achado testando /en e
   // /es com Playwright).
@@ -129,7 +132,9 @@ export default async function ProductPage(
     : tProduct("defaultWhatsappTemplate");
 
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
-  const productUrl = `${buildTenantOrigin(tenantSlug, rootDomain)}${buildExternalPath(localeTyped, `/p/${product.id}`)}`;
+  // Sem tenantPrefix aqui: buildTenantOrigin já inclui o "/l/<slug>" quando
+  // pathTenantMode está ligado (senão duplicaria).
+  const productUrl = `${buildTenantOrigin(tenantSlug, rootDomain, pathTenantMode)}${buildExternalPath(localeTyped, `/p/${product.id}`)}`;
 
   // headers() direto (sem Suspense extra) só é seguro aqui porque a página
   // já é `instant = false` — não tem shell estático protegido, então não
@@ -158,14 +163,14 @@ export default async function ProductPage(
     >
       <header className="flex items-center justify-between gap-4">
         <Link
-          href={buildExternalPath(localeTyped, "/")}
+          href={buildExternalPath(localeTyped, "/", tenantPrefix)}
           aria-label={tProduct("back")}
           className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface"
         >
           <BackIcon />
         </Link>
         <p className="truncate text-sm font-medium text-muted">{tenant.name}</p>
-        <LanguageSwitcher currentLocale={localeTyped} variant="compact" />
+        <LanguageSwitcher currentLocale={localeTyped} tenantPrefix={tenantPrefix} variant="compact" />
       </header>
 
       <TrackPageView event="product_view" tenantId={tenant.id} productId={product.id} locale={localeTyped} origin={origin} />

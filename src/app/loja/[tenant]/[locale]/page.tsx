@@ -10,6 +10,7 @@ import { FreshBanner } from "@/components/menu/FreshBanner";
 import { ProductCard } from "@/components/menu/ProductCard";
 import { WhatsAppCta } from "@/components/menu/WhatsAppCta";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { tenantPathPrefix } from "@/i18n/resolve-locale";
 import type { AppLocale } from "@/i18n/routing";
 import { isFresh } from "@/lib/fresh";
 import { resolveLocalizedText } from "@/lib/localized-text";
@@ -53,6 +54,9 @@ export default async function LojaPage(props: PageProps<"/loja/[tenant]/[locale]
   const tenant = await getTenantBySlug(tenantSlug);
   if (!tenant) notFound();
 
+  const pathTenantMode = process.env.NEXT_PUBLIC_PATH_TENANT_MODE === "true";
+  const tenantPrefix = tenantPathPrefix(pathTenantMode, tenantSlug);
+
   const [{ categories, products }, t] = await Promise.all([
     getMenu(tenant.id),
     // locale explícito: sem isso, getTranslations() às vezes resolve a
@@ -78,7 +82,7 @@ export default async function LojaPage(props: PageProps<"/loja/[tenant]/[locale]
           </p>
           <h1 className="font-heading text-2xl font-semibold text-ink">{tenant.name}</h1>
         </div>
-        <LanguageSwitcher currentLocale={localeTyped} />
+        <LanguageSwitcher currentLocale={localeTyped} tenantPrefix={tenantPrefix} />
       </header>
 
       <Suspense fallback={null}>
@@ -100,7 +104,12 @@ export default async function LojaPage(props: PageProps<"/loja/[tenant]/[locale]
         <p className="py-8 text-center text-sm text-muted">{t("empty")}</p>
       ) : (
         <Suspense fallback={<MenuSkeleton />}>
-          <MenuSections categories={categories} products={products} locale={localeTyped} />
+          <MenuSections
+            categories={categories}
+            products={products}
+            locale={localeTyped}
+            tenantPrefix={tenantPrefix}
+          />
         </Suspense>
       )}
 
@@ -180,10 +189,12 @@ async function MenuSections({
   categories,
   products,
   locale,
+  tenantPrefix,
 }: {
   categories: Category[];
   products: Product[];
   locale: AppLocale;
+  tenantPrefix: string;
 }) {
   await connection();
   // Date.now() depois de connection() é o padrão documentado do Next 16
@@ -214,6 +225,7 @@ async function MenuSections({
                   product={product}
                   locale={locale}
                   fresh={isFresh(product.freshFromOvenAt, FRESH_HOURS, now)}
+                  tenantPrefix={tenantPrefix}
                 />
               ))}
             </div>

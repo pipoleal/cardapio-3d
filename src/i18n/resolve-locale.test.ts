@@ -4,6 +4,7 @@ import {
   buildLojaRewritePath,
   detectPreferredLocale,
   resolveLocaleForPath,
+  tenantPathPrefix,
 } from "./resolve-locale";
 
 describe("resolveLocaleForPath", () => {
@@ -48,6 +49,25 @@ describe("resolveLocaleForPath", () => {
       pathWithoutLocale: "/",
     });
   });
+
+  it("com tenantPrefix (modo por caminho), tira o prefixo antes de procurar o locale", () => {
+    expect(resolveLocaleForPath("/l/boaconfe/en/bolo", "pt", "/l/boaconfe")).toEqual({
+      locale: "en",
+      needsRedirect: false,
+      pathWithoutLocale: "/bolo",
+    });
+    expect(resolveLocaleForPath("/l/boaconfe", "pt", "/l/boaconfe")).toEqual({
+      locale: "pt",
+      needsRedirect: false,
+      pathWithoutLocale: "/",
+    });
+    // preferido != padrão, sem prefixo de locale na URL -> ainda precisa de redirect
+    expect(resolveLocaleForPath("/l/boaconfe/bolo", "en", "/l/boaconfe")).toEqual({
+      locale: "en",
+      needsRedirect: true,
+      pathWithoutLocale: "/bolo",
+    });
+  });
 });
 
 describe("buildExternalPath", () => {
@@ -59,6 +79,23 @@ describe("buildExternalPath", () => {
   it("locale não-padrão sempre aparece na URL", () => {
     expect(buildExternalPath("en", "/bolo")).toBe("/en/bolo");
     expect(buildExternalPath("en", "/")).toBe("/en");
+  });
+
+  it("com tenantPrefix (modo por caminho), o prefixo vem antes do locale", () => {
+    expect(buildExternalPath("pt", "/bolo", "/l/boaconfe")).toBe("/l/boaconfe/bolo");
+    expect(buildExternalPath("pt", "/", "/l/boaconfe")).toBe("/l/boaconfe");
+    expect(buildExternalPath("en", "/bolo", "/l/boaconfe")).toBe("/l/boaconfe/en/bolo");
+    expect(buildExternalPath("en", "/", "/l/boaconfe")).toBe("/l/boaconfe/en");
+  });
+});
+
+describe("tenantPathPrefix", () => {
+  it("modo por caminho ligado -> /l/<slug>", () => {
+    expect(tenantPathPrefix(true, "boaconfe")).toBe("/l/boaconfe");
+  });
+
+  it("modo por caminho desligado (padrão, subdomínio) -> vazio", () => {
+    expect(tenantPathPrefix(false, "boaconfe")).toBe("");
   });
 });
 

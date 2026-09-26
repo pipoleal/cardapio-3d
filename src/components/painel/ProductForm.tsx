@@ -14,6 +14,7 @@ import {
   type ProductInput,
 } from "@/lib/actions/products";
 import type { Allergen } from "@/lib/schemas/common";
+import { buildTenantOrigin } from "@/lib/tenant-host";
 
 type CategoryOption = { id: string; name: string };
 
@@ -57,7 +58,9 @@ export function ProductForm({
   }
 
   const isNew = !values.id;
-  const productUrl = `https://${tenantSlug}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000"}/p/${values.id}`;
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
+  const pathTenantMode = process.env.NEXT_PUBLIC_PATH_TENANT_MODE === "true";
+  const productUrl = `${buildTenantOrigin(tenantSlug, rootDomain, pathTenantMode)}/p/${values.id}`;
 
   function toggleAllergen(list: "allergens" | "mayContain", allergen: Allergen) {
     setValues((current) => {

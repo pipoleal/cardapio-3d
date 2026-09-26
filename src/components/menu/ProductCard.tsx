@@ -13,12 +13,14 @@ type ProductCardProps = {
   product: Product;
   locale: AppLocale;
   fresh: boolean;
+  /** `/l/<slug>` no modo por caminho da staging, `""` no modo subdomínio — ver `tenantPathPrefix`. */
+  tenantPrefix: string;
 };
 
 // Card do cardápio (mockup 01): miniatura 96px + selo 3D, nome, descrição
 // 2 linhas, "Contém/Pode conter" em texto (não chip — isso é só na página
 // do produto), preço ou "Esgotado hoje".
-export async function ProductCard({ product, locale, fresh }: ProductCardProps) {
+export async function ProductCard({ product, locale, fresh, tenantPrefix }: ProductCardProps) {
   // locale explícito: ver o comentário em loja/[tenant]/[locale]/page.tsx.
   const t = await getTranslations({ locale, namespace: "menu" });
   const name = resolveLocalizedText(product.name, locale, product.i18nStatus);
@@ -34,7 +36,7 @@ export async function ProductCard({ product, locale, fresh }: ProductCardProps) 
 
   return (
     <Link
-      href={buildExternalPath(locale, `/p/${product.id}`)}
+      href={buildExternalPath(locale, `/p/${product.id}`, tenantPrefix)}
       className={cn(
         "flex gap-3 rounded-card border border-border bg-surface p-3 transition-opacity",
         !product.available && "opacity-60",

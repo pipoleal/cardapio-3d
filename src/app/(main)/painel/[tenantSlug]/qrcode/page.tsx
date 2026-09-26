@@ -11,7 +11,8 @@ export default async function QrCodePage(props: PageProps<"/painel/[tenantSlug]/
   const { tenant } = await requireTenantOwner(tenantSlug);
 
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
-  const origin = buildTenantOrigin(tenant.slug, rootDomain);
+  const pathTenantMode = process.env.NEXT_PUBLIC_PATH_TENANT_MODE === "true";
+  const origin = buildTenantOrigin(tenant.slug, rootDomain, pathTenantMode);
 
   return (
     <div className="flex flex-col gap-6">

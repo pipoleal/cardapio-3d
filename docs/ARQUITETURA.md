@@ -51,6 +51,12 @@
 - **Isolamento:** dados em `tenants/{tenantId}/...`; regras do Firestore conferem se `request.auth.uid` está em `tenant.ownerUids` ou se é superadmin.
 - **DNS/Vercel:** domínio raiz + `*.<DOMINIO>` no projeto Vercel. Domínio curinga na Vercel exige usar os nameservers da Vercel.
 - **Futuro:** domínio próprio da loja (`cardapio.confeitaria.com.br`) → mapear `customDomains/{host}` → tenantId.
+- **Modo por caminho (`NEXT_PUBLIC_PATH_TENANT_MODE=true`):** só pra staging antes de configurar DNS
+  curinga (ver `docs/DEPLOY-STAGING.md`) — a loja fica acessível em `<host>/l/<slug>/...` em vez de
+  `<slug>.<host>`. `resolveProxyRoute`/`buildTenantOrigin` (`lib/tenant-host.ts`) e
+  `buildExternalPath`/`tenantPathPrefix` (`i18n/resolve-locale.ts`) tratam isso de forma unificada —
+  todo link (interno ou absoluto) que já passava por essas funções ganha o prefixo automaticamente,
+  sem `if` espalhado pelo código. Opt-in, desligado por padrão; produção de verdade usa subdomínio.
 
 ## Painel do lojista
 
@@ -59,7 +65,9 @@
 - **Login:** `<DOMINIO>/entrar` (Google + e-mail/senha) — único ponto de entrada; não existe login no subdomínio da loja.
 - **Seletor de loja** (sidebar, mockup 04): troca entre as lojas do usuário (`users/{uid}.tenantIds`); superadmin vê todas.
 - **No subdomínio da loja**, acessar `/painel` (ou `/painel/*`) **redireciona** (`proxy.ts`) para `<DOMINIO>/painel/<slug>` — mantém um link antigo/favoritado funcionando sem duplicar a área logada em dois lugares.
-- **"Ver no cardápio"** (dentro do painel) abre `<slug>.<DOMINIO>` — o cardápio público de verdade, no subdomínio da loja — numa aba nova.
+- **"Ver no cardápio"** (dentro do painel) abre o cardápio público de verdade numa aba nova —
+  `<slug>.<DOMINIO>` no modo subdomínio, ou `<DOMINIO>/l/<slug>` no modo por caminho da staging
+  (`buildTenantOrigin`, mesma função dos dois casos).
 - **Proteção:** `/painel/<slug>/*` e `/admin` conferem o dono do tenant **no servidor** (sessão/ID token do Firebase Auth + `tenant.ownerUids`, ou custom claim `role=superadmin`), não só no cliente.
 
 ## Internacionalização

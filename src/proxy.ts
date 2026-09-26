@@ -15,6 +15,10 @@ const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
 const EXTRA_DOMAINS = process.env.NEXT_PUBLIC_DEV_EXTRA_DOMAIN
   ? [process.env.NEXT_PUBLIC_DEV_EXTRA_DOMAIN]
   : [];
+// Staging sem DNS curinga (`docs/DECISOES.md`): acessa a loja por
+// `<host>/l/<slug>/...` em vez de `<slug>.<host>` quando ligado. Produção de
+// verdade nunca liga isso.
+const PATH_TENANT_MODE = process.env.NEXT_PUBLIC_PATH_TENANT_MODE === "true";
 const LOCALE_COOKIE = "NEXT_LOCALE";
 const ORIGIN_QUERY_PARAM = "origem";
 
@@ -73,7 +77,7 @@ export function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? request.nextUrl.host;
   const { pathname, search, searchParams } = request.nextUrl;
 
-  const route = resolveProxyRoute(host, pathname, ROOT_DOMAIN, EXTRA_DOMAINS);
+  const route = resolveProxyRoute(host, pathname, ROOT_DOMAIN, EXTRA_DOMAINS, PATH_TENANT_MODE);
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete("x-tenant");
@@ -125,12 +129,20 @@ export function proxy(request: NextRequest) {
     request.cookies.get(LOCALE_COOKIE)?.value,
     request.headers.get("accept-language"),
   );
-  const localeResolution = resolveLocaleForPath(pathname, preferredLocale);
+  // `route.pathname` já vem sem o prefixo de tenant (subdomínio: igual ao
+  // pathname original; modo por caminho: sem o "/l/<slug>") — a resolução de
+  // locale nunca precisa saber qual dos dois modos está ativo.
+  const localeResolution = resolveLocaleForPath(route.pathname, preferredLocale);
+  // route.tenantPrefix já vem certo por requisição (resolveProxyRoute
+  // decide, não a flag global sozinha — bug real testado: com a flag
+  // ligada, uma requisição por subdomínio não pode ganhar "/l/<slug>").
+  const prefix = route.tenantPrefix;
 
   if (localeResolution.needsRedirect || originNeedsCleanup) {
     const externalPath = buildExternalPath(
       localeResolution.locale,
       localeResolution.pathWithoutLocale,
+      prefix,
     );
     const cleanSearch = new URLSearchParams(search);
     cleanSearch.delete(ORIGIN_QUERY_PARAM);

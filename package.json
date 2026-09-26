@@ -22,7 +22,8 @@
     "check-translations": "tsx scripts/check-translations.ts",
     "check-origin": "tsx --env-file=.env.local scripts/check-origin.ts",
     "check-painel": "tsx --env-file=.env.local scripts/check-painel.ts",
-    "check-captura": "tsx --env-file=.env.local scripts/check-captura.ts"
+    "check-captura": "tsx --env-file=.env.local scripts/check-captura.ts",
+    "check-path-tenant": "tsx --env-file=.env.local scripts/check-path-tenant.ts"
   },
   "dependencies": {
     "@google-cloud/translate": "^10.1.0",

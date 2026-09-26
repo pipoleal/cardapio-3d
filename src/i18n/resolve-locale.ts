@@ -20,8 +20,13 @@ export type LocaleResolution = {
 export function resolveLocaleForPath(
   pathname: string,
   preferredLocale: AppLocale,
+  tenantPrefix = "",
 ): LocaleResolution {
-  const segments = pathname.split("/");
+  const strippedPathname =
+    tenantPrefix && pathname.startsWith(tenantPrefix)
+      ? pathname.slice(tenantPrefix.length) || "/"
+      : pathname;
+  const segments = strippedPathname.split("/");
   const maybeLocale = segments[1];
   const restSegments = segments.slice(2);
   const pathWithoutLocale = restSegments.length > 0 ? `/${restSegments.join("/")}` : "/";
@@ -38,16 +43,33 @@ export function resolveLocaleForPath(
   // Sem prefixo de locale na URL.
   return {
     locale: preferredLocale,
-    pathWithoutLocale: pathname,
+    pathWithoutLocale: strippedPathname,
     needsRedirect: preferredLocale !== routing.defaultLocale,
   };
 }
 
-/** URL externa (a que o navegador vê) para um locale + path já resolvidos. */
-export function buildExternalPath(locale: AppLocale, pathWithoutLocale: string): string {
-  if (locale === routing.defaultLocale) return pathWithoutLocale;
+/**
+ * URL externa (a que o navegador vê) para um locale + path já resolvidos.
+ * `tenantPrefix` (`/l/<slug>` no modo por caminho da staging, `""` no modo
+ * subdomínio — ver `tenantPathPrefix`) entra ANTES do locale, sempre.
+ */
+export function buildExternalPath(
+  locale: AppLocale,
+  pathWithoutLocale: string,
+  tenantPrefix = "",
+): string {
   const suffix = pathWithoutLocale === "/" ? "" : pathWithoutLocale;
-  return `/${locale}${suffix}`;
+  if (locale === routing.defaultLocale) return tenantPrefix + suffix || "/";
+  return `${tenantPrefix}/${locale}${suffix}`;
+}
+
+/**
+ * `/l/<slug>` quando `pathTenantMode` (staging sem DNS curinga, ver
+ * `docs/DECISOES.md`), `""` no modo subdomínio normal — usado em toda URL
+ * (interna ou absoluta) que precisa continuar apontando pra loja certa.
+ */
+export function tenantPathPrefix(pathTenantMode: boolean, tenantSlug: string): string {
+  return pathTenantMode ? `/l/${tenantSlug}` : "";
 }
 
 /** Path interno de rewrite para a loja — sempre carrega o locale explícito. */

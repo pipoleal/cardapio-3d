@@ -12,16 +12,21 @@ const LABELS: Record<AppLocale, string> = { pt: "PT", en: "EN", es: "ES" };
 
 type LanguageSwitcherProps = {
   currentLocale: AppLocale;
+  /** `/l/<slug>` no modo por caminho da staging, `""` no modo subdomínio — ver `tenantPathPrefix`. */
+  tenantPrefix: string;
   /** "pills": grupo PT/EN/ES lado a lado (mockup 01). "compact": globo + locale atual, abre as opções (mockup 02). */
   variant?: "pills" | "compact";
 };
 
-// Troca só o locale, mantém tenant (host) e o resto do path — usa a mesma
+// Troca só o locale, mantém tenant e o resto do path — usa a mesma
 // resolução do proxy.ts para não duplicar a regra de onde o prefixo de
-// locale aparece na URL.
-export function LanguageSwitcher({ currentLocale, variant = "pills" }: LanguageSwitcherProps) {
+// locale aparece na URL. `usePathname()` no modo por caminho devolve o path
+// com "/l/<slug>" ainda na frente (é o que o navegador vê de verdade) — por
+// isso `tenantPrefix` precisa ser tirado antes de resolver o locale e posto
+// de volta ao montar o link novo.
+export function LanguageSwitcher({ currentLocale, tenantPrefix, variant = "pills" }: LanguageSwitcherProps) {
   const pathname = usePathname();
-  const { pathWithoutLocale } = resolveLocaleForPath(pathname, currentLocale);
+  const { pathWithoutLocale } = resolveLocaleForPath(pathname, currentLocale, tenantPrefix);
   const [open, setOpen] = useState(false);
   const t = useTranslations("common");
 
@@ -30,7 +35,7 @@ export function LanguageSwitcher({ currentLocale, variant = "pills" }: LanguageS
   const options = routing.locales.map((locale) => (
     <Link
       key={locale}
-      href={buildExternalPath(locale, pathWithoutLocale)}
+      href={buildExternalPath(locale, pathWithoutLocale, tenantPrefix)}
       aria-current={locale === currentLocale ? "true" : undefined}
       onClick={() => setOpen(false)}
       className={pillClassName(
