@@ -2,17 +2,30 @@ import "server-only";
 import { del, head, issueSignedToken, presignUrl, put } from "@vercel/blob";
 import type { StorageAccess, StorageProvider, UploadResult } from "./provider";
 
+type BlobAuth = { token: string } | { storeId: string };
+
 /**
  * Dois stores Blob (não dá pra misturar público/privado num store só —
- * confirmado na doc: o modo é fixo na criação do store, não muda depois),
- * cada um com o próprio token, gerados ao conectar o store no projeto
- * Vercel (docs/DEPLOY-STAGING.md).
+ * confirmado na doc: o modo é fixo na criação do store, não muda depois).
+ * A Vercel mudou o modelo padrão pra OIDC em 2026: conectar um store JÁ
+ * EXISTENTE ao projeto (Storage → Connect Project) só cria
+ * `BLOB_<PREFIXO>_STORE_ID`/`BLOB_<PREFIXO>_WEBHOOK_PUBLIC_KEY`, sem token —
+ * o `BLOB_READ_WRITE_TOKEN` estático só nasce automaticamente quando o
+ * store é criado do zero pelo assistente "Create Storage" (confirmado
+ * testando de verdade, 2026-09-26). `put`/`del`/`issueSignedToken` aceitam
+ * `token` OU `storeId` (com o `VERCEL_OIDC_TOKEN`, que a Vercel injeta e
+ * roda sozinho) — se algum dia um token estático existir (ex.: outro
+ * projeto, ou alguém gerar um manualmente), ele tem prioridade.
  */
-function tokenFor(access: StorageAccess): string {
-  const envVar = access === "public" ? "BLOB_READ_WRITE_TOKEN_PUBLIC" : "BLOB_READ_WRITE_TOKEN_PRIVATE";
-  const token = process.env[envVar];
-  if (!token) throw new Error(`Falta ${envVar} pra usar STORAGE_PROVIDER=vercel-blob.`);
-  return token;
+function authFor(access: StorageAccess): BlobAuth {
+  const suffix = access === "public" ? "PUBLIC" : "PRIVATE";
+  const token = process.env[`BLOB_READ_WRITE_TOKEN_${suffix}`];
+  if (token) return { token };
+  const storeId = process.env[`BLOB_${suffix}_STORE_ID`];
+  if (storeId) return { storeId };
+  throw new Error(
+    `Falta BLOB_READ_WRITE_TOKEN_${suffix} ou BLOB_${suffix}_STORE_ID pra usar STORAGE_PROVIDER=vercel-blob.`,
+  );
 }
 
 export class VercelBlobStorageProvider implements StorageProvider {
@@ -27,25 +40,24 @@ export class VercelBlobStorageProvider implements StorageProvider {
       access: opts.access,
       contentType: opts.contentType,
       addRandomSuffix: true,
-      token: tokenFor(opts.access),
+      ...authFor(opts.access),
     });
     return { url: blob.url, path: blob.pathname };
   }
 
   async getExternalReadUrl(path: string, opts: { access: StorageAccess; ttlSeconds: number }): Promise<string> {
-    const token = tokenFor(opts.access);
+    const auth = authFor(opts.access);
     if (opts.access === "public") {
-      const metadata = await head(path, { token });
+      const metadata = await head(path, auth);
       return metadata.url;
     }
-    // Signed URLs (feature nova do Vercel Blob, confirmada na doc em
-    // 2026-09) — dá acesso de leitura temporário a um blob PRIVADO pra um
+    // Signed URLs — dá acesso de leitura temporário a um blob PRIVADO pra um
     // serviço externo (a Meshy) buscar direto, sem passar pelos nossos bytes.
     const signedToken = await issueSignedToken({
       pathname: path,
       operations: ["get"],
       validUntil: Date.now() + opts.ttlSeconds * 1000,
-      token,
+      ...auth,
     });
     const { presignedUrl } = await presignUrl(signedToken, {
       operation: "get",
@@ -66,7 +78,7 @@ export class VercelBlobStorageProvider implements StorageProvider {
   }
 
   async delete(path: string, opts: { access: StorageAccess }): Promise<void> {
-    await del(path, { token: tokenFor(opts.access) }).catch(() => {
+    await del(path, authFor(opts.access)).catch(() => {
       // "apagar o que já não existe" não deveria derrubar nada (ex.:
       // produto sem capa anterior) — mesmo espírito do `ignoreNotFound` do
       // provider Firebase.

@@ -18,11 +18,19 @@ export async function uploadFile(
   opts: { contentType: string; access: StorageAccess },
 ): Promise<{ url: string; path: string }> {
   if (process.env.NEXT_PUBLIC_STORAGE_PROVIDER === "vercel-blob") {
-    const { upload } = await import("@vercel/blob/client");
-    const result = await upload(path, blob, {
+    const handleUploadUrl = opts.access === "public" ? "/api/blob/upload/public" : "/api/blob/upload/private";
+    // O servidor decide, por ambiente, entre BLOB_READ_WRITE_TOKEN_* estático
+    // (se existir) ou storeId/OIDC (padrão desde que a Vercel mudou o
+    // modelo em 2026 — ver src/app/api/blob/upload/public/route.ts) — o
+    // cliente precisa chamar a função correspondente, por isso o modo
+    // também precisa estar disponível aqui (NEXT_PUBLIC_, ver .env.example).
+    const usePresigned = process.env.NEXT_PUBLIC_BLOB_UPLOAD_AUTH !== "token";
+    const { upload, uploadPresigned } = await import("@vercel/blob/client");
+    const uploadFn = usePresigned ? uploadPresigned : upload;
+    const result = await uploadFn(path, blob, {
       access: opts.access,
       contentType: opts.contentType,
-      handleUploadUrl: opts.access === "public" ? "/api/blob/upload/public" : "/api/blob/upload/private",
+      handleUploadUrl,
     });
     return { url: result.url, path: result.pathname };
   }

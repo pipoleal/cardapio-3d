@@ -15,3 +15,6 @@ coverage/
 screenshots/
 .claude/
 certs/
+
+.vercel
+.env*

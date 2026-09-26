@@ -30,7 +30,8 @@ Project Settings → Environment Variables. Todas as de `.env.example`, com valo
 - `NEXT_PUBLIC_ROOT_DOMAIN=<domínio de staging>` (ver seção 6).
 - `NEXT_PUBLIC_PATH_TENANT_MODE=true` — enquanto não tem domínio com subdomínio curinga (seção 7),
   acessa a loja por `<host>/l/<slug>` em vez de `<slug>.<host>` (decisão nº 26).
-- `STORAGE_PROVIDER=vercel-blob` e `NEXT_PUBLIC_STORAGE_PROVIDER=vercel-blob` (seção 3).
+- `STORAGE_PROVIDER=vercel-blob`, `NEXT_PUBLIC_STORAGE_PROVIDER=vercel-blob` e
+  `NEXT_PUBLIC_BLOB_UPLOAD_AUTH=presigned` (seção 3).
 - `MODEL_PROVIDER=meshy` + `MESHY_API_KEY` — **cuidado com custo**: cada geração gasta crédito de
   verdade. Considere deixar `MODEL_PROVIDER=fake` em staging até o dia de testar a Meshy/AR de
   verdade, e trocar só nesse dia.
@@ -44,20 +45,31 @@ isso são **dois stores**, um pra cada nível de acesso. Os stores **`cardapio-3
 **`cardapio-3d-private`** (região `gru1`) já existem — só falta **conectar** ao projeto:
 
 1. Project → Storage → selecionar o store existente → **Connect Project**.
-   - `cardapio-3d-public` (access **Public**): conectar com o prefixo de env var
-     `BLOB_READ_WRITE_TOKEN_PUBLIC` (Advanced Options ao conectar) — cobre capa, logo e o upload
-     manual de modelo 3D.
-   - `cardapio-3d-private` (access **Private**): conectar com o prefixo
-     `BLOB_READ_WRITE_TOKEN_PRIVATE` — cobre as fotos de captura (nunca públicas).
+   - `cardapio-3d-public` (access **Public**): conectar com o prefixo de env var `BLOB_PUBLIC`
+     (Advanced Options ao conectar) — cobre capa, logo e o upload manual de modelo 3D.
+   - `cardapio-3d-private` (access **Private**): conectar com o prefixo `BLOB_PRIVATE` — cobre as
+     fotos de captura (nunca públicas).
 2. Marcar os ambientes **Production**, **Preview** e (se for testar local antes do deploy, ver
    abaixo) **Development** ao conectar cada store.
-3. Testar local antes do deploy: `vercel env pull` copia os tokens reais pro `.env.local` — troque
-   `STORAGE_PROVIDER`/`NEXT_PUBLIC_STORAGE_PROVIDER` pra `vercel-blob` lá (comentado por padrão, ver
-   `.env.local`). **Limitação conhecida:** o callback `onUploadCompleted` do Blob não alcança
-   `localhost` (precisa de uma URL https pública) — não afeta nada aqui, porque o app não depende
-   desse callback pra persistir a URL do upload (o cliente já chama a Server Action assim que
-   `upload()` resolve, ver `lib/storage/upload-client.ts`); só significa que, testando local, o
-   log do `onUploadCompleted` no servidor nunca aparece — normal, ignorar.
+
+**Atenção — a Vercel mudou o modelo padrão em 2026** (achado testando de verdade, não só na doc):
+conectar um store **já existente** (como os nossos) não cria mais `BLOB_READ_WRITE_TOKEN` nenhum —
+só `BLOB_PUBLIC_STORE_ID`/`BLOB_PUBLIC_WEBHOOK_PUBLIC_KEY` e
+`BLOB_PRIVATE_STORE_ID`/`BLOB_PRIVATE_WEBHOOK_PUBLIC_KEY`. A autenticação agora é por OIDC
+(`VERCEL_OIDC_TOKEN`, injetado e renovado sozinho pela Vercel — nunca precisa mexer nisso), pareado
+com o `storeId`. `.env.example`/`docs/DECISOES.md` #27 têm o detalhe; `NEXT_PUBLIC_BLOB_UPLOAD_AUTH`
+já vem `presigned` (o modo certo pra esse caso) — só mude pra `token` se algum dia gerar um
+`BLOB_READ_WRITE_TOKEN_*` de verdade (isso ainda nasce sozinho se um store for criado do zero pelo
+assistente "Create Storage" em vez de conectado depois de já existir).
+
+Testar local antes do deploy: `vercel env pull` copia `BLOB_*_STORE_ID`/`BLOB_*_WEBHOOK_PUBLIC_KEY`
+pro `.env.local` (não tem token pra copiar, é assim mesmo) — troque
+`STORAGE_PROVIDER`/`NEXT_PUBLIC_STORAGE_PROVIDER` pra `vercel-blob` lá (comentado por padrão, ver
+`.env.local`). **Limitação conhecida:** o callback `onUploadCompleted` do Blob não alcança
+`localhost` (precisa de uma URL https pública) — não afeta nada aqui, porque o app não depende
+desse callback pra persistir a URL do upload (o cliente já chama a Server Action assim que o upload
+resolve, ver `lib/storage/upload-client.ts`); só significa que, testando local, o log do
+`onUploadCompleted` no servidor nunca aparece — normal, ignorar.
 
 Limites do plano Hobby (grátis) do Vercel Blob — conferidos na documentação (`vercel.com/docs/vercel-blob/usage-and-pricing`, 2026-09): 1 GB de armazenamento, 2.000 operações avançadas
 (`put`/`upload`/`copy`/`list`) e 10.000 simples (leitura com cache MISS) por mês, 10 GB de
