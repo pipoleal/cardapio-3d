@@ -58,6 +58,30 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [x] Upload manual de modelo 3D ("Subir meu modelo", `.glb` obrigatório + `.usdz` opcional) no card
       Modelo 3D — pra quando o lojista já tem um modelo pronto, sem precisar da Meshy.
 
+## Etapa 4.1 — Worker 3D próprio (self-hosted)
+- [x] Teste comparativo TRELLIS vs. Hunyuan3D-2mv-turbo (repo `cardapio-3d-worker`) — decisão:
+      **TRELLIS padrão** (barato, ~US$0,02/produto, ~80s numa A10G); **Hunyuan só teste-superadmin**
+      (custo bem maior, ~US$0,38/produto, ~11min, a etapa de textura roda numa A100). Ver
+      `docs/DECISOES.md`.
+- [x] Worker vira serviço HTTP persistente na Modal (`modal deploy`, `@modal.asgi_app`):
+      `/create` (spawn), `/status` (polling), `/download` (URL temporária, token com TTL de 15min),
+      `/cleanup`. `max_containers=2` nas 3 functions GPU, sem `min_containers` (escala a zero
+      quando ocioso). Pré-processamento (remoção de fundo) e compressão de textura do `.glb` rodam
+      numa imagem CPU separada das duas imagens GPU, pra nunca invalidar o cache do flash-attn etc.
+- [x] `SelfHostedModelProvider` (`lib/three-d/selfhosted.ts`) — mesmo contrato `createTask`/`getTask`
+      da Meshy; `MODEL_PROVIDER=selfhosted` liga o 3º branch em `getModelProvider()`.
+- [x] Webhook genérico (`/api/models/webhook/[provider]`) ganha o branch `selfhosted`; `jobs.ts`
+      prefere `costCents` direto (calculado no worker) sobre o cálculo de créditos da Meshy.
+- [x] Escolha de IA por request (não por env var global): `aiModel` no corpo de `POST /api/models`,
+      servidor força `"trellis"` se quem pediu não for superadmin (defesa em profundidade).
+- [x] Rota "Vídeo · escaneamento" do assistente de captura deixa de ser "em breve": grava
+      10-15s/720p (`MediaRecorder`), com fallback pro app de câmera nativo no iPhone
+      (`<input capture="environment">`) — o worker extrai os melhores quadros (ffmpeg + nitidez).
+- [x] Painel: seletor "Modelo de IA" (só superadmin, com o custo estimado do Hunyuan visível) no
+      assistente de captura; card "Modelo 3D" mostra qual IA gerou (só superadmin).
+- [ ] Deploy em staging com `MODEL_PROVIDER=selfhosted` e roteiro de teste no celular com um doce
+      real (código pronto, aguardando a etapa de rollout).
+
 ## Etapa 5 — Analytics
 - [x] `POST /api/track` + helper `track()` no cliente (`sendBeacon`).
 - [x] Contagem de visitas por origem (`stats.origin`, ver `lib/origin.ts` e `docs/MODELO-DE-DADOS.md`) — a página resolve `x-origin` (o Route Handler não recebe, ver `docs/ARQUITETURA.md`).
@@ -77,17 +101,16 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
 - [ ] Configurar o webhook da Meshy no dashboard dela (URL + `MESHY_WEBHOOK_SECRET`) — o endpoint já existe (`POST /api/models/webhook/[provider]`), falta só o passo manual de deploy. Ver `docs/DEPLOY-STAGING.md`.
 
 ## Depois do piloto (backlog)
-- Rota "Vídeo · escaneamento": extrai os melhores quadros do vídeo (ffmpeg + seleção por nitidez/
-  ângulo) e manda pro mesmo modelo multi-imagem da rota de fotos — fotogrametria (COLMAP+OpenMVS)
-  fica como plano B, não é a abordagem principal (decisão de 2026-09, ver pesquisa do worker 3D
-  próprio em `docs/DECISOES.md`) · modelo da fatia (alternador Inteiro | Fatia) · compressão GLB
-  (gltf-transform) · editor de escala do modelo
-- **Pendente de decisão** — worker 3D próprio (repo `cardapio-3d-worker`, teste comparativo em
-  andamento): se o **Hunyuan3D-2mv** vencer o teste comparativo (em vez do TRELLIS), as poses do
-  assistente de captura (`src/components/capture/CaptureFlow.tsx`, hoje `frente/45°/lateral/cima`)
-  precisam mudar pra `frente/esquerda/trás/direita/cima` — o Hunyuan espera ângulos nomeados
-  (front/left/back/right), não bate com as poses atuais. Não implementar antes do resultado do
-  teste.
+- Fotogrametria (COLMAP+OpenMVS) como plano B pro pipeline 3D, se a qualidade do TRELLIS não
+  convencer pra alguns produtos (decisão de 2026-09, ver `docs/DECISOES.md`) · modelo da fatia
+  (alternador Inteiro | Fatia) · editor de escala do modelo
+- Poses do assistente de captura (`CaptureFlow.tsx`, hoje `frente/45°/lateral/cima`) mudarem pra
+  `frente/esquerda/trás/direita/cima`: só valeria a pena se o Hunyuan deixasse de ser
+  ferramenta de teste do superadmin e virasse rota de produção pra todo mundo — hoje o TRELLIS
+  (padrão) não liga pra pose/ordem, então não há necessidade real disso agora.
+- Limpar o Volume de outputs do worker (`cardapio-3d-worker`) num sweep periódico, caso o
+  `/cleanup` chamado por `jobs.ts` falhe silenciosamente com alguma frequência (hoje é
+  melhor-esforço, sem alarme se falhar).
 - Sacola de encomenda (vários itens em uma mensagem de WhatsApp)
 - Domínio próprio por loja · planos/cobrança · PWA · pedido na mesa
 - Limpeza das fotos de captura antigas no storage (hoje ficam pra sempre depois de gerar o modelo — só capa/logo/modelo 3D apagam o arquivo anterior ao trocar, ver `lib/three-d/jobs.ts`)

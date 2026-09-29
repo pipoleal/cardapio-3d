@@ -1,12 +1,18 @@
 # Pipeline 3D — captura no site → modelo GLB/USDZ
 
-Decisão do piloto: **IA foto → 3D (Meshy)**, atrás de uma interface para poder trocar de provedor (Tripo, fotogrametria etc.).
+Decisão do piloto: **IA foto → 3D**, atrás de uma interface (`ModelProvider`) pra poder trocar de
+provedor. Provider padrão em produção/staging: **self-hosted** (worker próprio na Modal, TRELLIS) —
+ver `docs/DECISOES.md` #30. Meshy continua implementado como alternativa (não usado por padrão);
+`fake` é o padrão em dev.
 
-> ⚠️ Antes de implementar, confira a documentação atual da Meshy (https://docs.meshy.ai): endpoints, parâmetros, formatos de saída e preços mudam. Os nomes abaixo são a referência de design, não um contrato.
+> ⚠️ Antes de mexer na integração da Meshy, confira a documentação atual dela (https://docs.meshy.ai): endpoints, parâmetros, formatos de saída e preços mudam. Os nomes na seção 3 são a referência de design, não um contrato.
 
 ## 1. Captura no navegador (`components/capture/`)
 
-Assistente em 3 passos, pensado para o celular do lojista:
+Assistente com duas rotas, pensado para o celular do lojista — "Fotos · IA" (3 passos) e
+"Vídeo · escaneamento":
+
+**Fotos · IA:**
 
 1. **Preparar:** dicas visuais — fundo liso e contrastante, luz difusa (perto de janela, sem sol direto), produto inteiro no quadro, sem mãos, prato neutro.
 2. **Fotografar:** até **4 fotos** (frente, 45°, lateral e de cima) com overlay de guia.
@@ -18,6 +24,14 @@ Compressão no cliente (≈ 2048px, WebP 0,85, `lib/image-compress.ts`) → uplo
 `tenants/{tenantId}/products/{productId}/captures/{captureId}/{pose}.webp` com o SDK web do
 Storage (`captureId` é gerado no cliente, `crypto.randomUUID()` — não é o `jobId`, que só existe
 depois que o servidor cria o `modelJobs/{jobId}`).
+
+**Vídeo · escaneamento** (só o provider self-hosted suporta): grava 10-15s a 720p com
+`MediaRecorder` (câmera ao vivo, sem áudio), com fallback pro app de câmera nativo do celular
+(`<input type="file" accept="video/*" capture="environment">`) quando `MediaRecorder`/câmera ao
+vivo não estiver disponível — mesmo padrão de fallback da rota de fotos. Upload (até 50 MB) pra
+`tenants/{tenantId}/products/{productId}/captures/{captureId}/video.{webm|mp4|mov}`; o worker
+extrai os melhores quadros (ffmpeg a ~4fps + nota de nitidez por bloco de tempo, ver
+`docs/DECISOES.md` #30) e segue pelo mesmo pipeline multi-imagem da rota de fotos.
 
 ## 2. Servidor
 
@@ -56,14 +70,19 @@ GET  /api/models/{jobId}?tenantSlug=
 
 ```ts
 export interface ModelProvider {
-  name: "meshy" | "fake";
-  createTask(input: { imageUrls: string[] }): Promise<{ taskId: string }>;
+  name: "meshy" | "fake" | "selfhosted";
+  createTask(input: {
+    imageUrls: string[];
+    videoUrl?: string; // só self-hosted usa
+    aiModel?: "trellis" | "hunyuan"; // só self-hosted usa, default "trellis"
+  }): Promise<{ taskId: string }>;
   getTask(taskId: string): Promise<{
     status: "queued" | "processing" | "succeeded" | "failed";
     progress: number;
     outputs?: { glbUrl: string; usdzUrl?: string; thumbnailUrl?: string };
     error?: string;
-    consumedCredits?: number;
+    consumedCredits?: number; // Meshy — créditos, convertido via MESHY_CREDIT_PRICE_CENTS
+    costCents?: number; // self-hosted — custo real já em centavos
   }>;
 }
 ```
@@ -77,6 +96,18 @@ saída GLB + USDZ, e um número de polígonos moderado (o foco é abrir leve no 
 créditos por task por padrão (mais se pedir PBR/resolução maior) — `MESHY_CREDIT_PRICE_CENTS`
 converte `consumed_credits` em `product.model.costCents`.
 
+**Self-hosted** (`lib/three-d/selfhosted.ts`, `MODEL_PROVIDER=selfhosted`, padrão em
+produção/staging): worker próprio na Modal (repo `cardapio-3d-worker`), HTTP contra um app
+`@modal.asgi_app` deployado (`modal deploy`) — `/create` (spawna `run_pipeline`, devolve
+`task_id`), `/status` (polling), `/download` (URL temporária, token com TTL de 15 min) e
+`/cleanup` (chamado por `jobs.ts` depois de confirmar a cópia pro nosso Storage). Mesmo contrato
+`createTask`/`getTask` da Meshy — `finalize.ts` não sabe nem precisa saber que não é mais a Meshy.
+TRELLIS é o modelo padrão (`aiModel: "trellis"`); Hunyuan3D-2mv-turbo só entra se
+`aiModel: "hunyuan"` **e** quem pediu for superadmin (`resolveEffectiveAiModel`,
+`lib/three-d/index.ts` — o servidor decide, nunca confia só no corpo da requisição). Detalhes
+completos da arquitetura (spawn/poll/webhook, pré-processamento e compressão numa imagem CPU
+separada das imagens GPU, mapeamento de pose, poster) em `docs/DECISOES.md` #30.
+
 **Provider `fake`** (`lib/three-d/fake.ts`, padrão em dev): sem rede, sem custo, sem estado em
 memória — o horário de criação vai codificado no próprio `taskId` (`fake-<timestamp>`), então
 sobrevive a um reload do servidor de dev. Devolve como output o `.gltf` de amostra em
@@ -88,9 +119,14 @@ automaticamente no navegador a partir do `.gltf`/`.glb` quando `ios-src` está a
 hardware Apple), então continua valendo rodar uma vez com `MODEL_PROVIDER=meshy` e um iPhone de
 verdade pra conferir o fluxo completo.
 
-## 4. Pós-processamento (fase 2)
+## 4. Pós-processamento
 
-- Compressão do GLB com `gltf-transform` (Draco/Meshopt + texturas WebP/KTX2) para ficar com menos de 5 MB.
+- ~~Compressão do GLB~~ — feito, mas **no worker** (não com `gltf-transform`/Next.js): o self-hosted
+  recomprime a textura embutida no `.glb` (resize + JPEG) antes de devolver o resultado, meta de
+  ficar bem abaixo de 5 MB (TRELLIS já sai por volta de 1,3 MB). Rodar isso no worker, numa imagem
+  CPU separada das duas imagens GPU, evita invalidar o cache de build da Modal — ver
+  `docs/DECISOES.md` #30. Se um dia precisar comprimir mais (Draco/meshopt na geometria), fica
+  como próximo passo, não crítico hoje.
 - ~~Se o provedor não devolver USDZ: gerar com a exportação USDZ do `<model-viewer>`/three.js~~ — já
   acontece sozinho, o `<model-viewer>` faz isso no navegador do visitante sem precisar de nada do
   nosso servidor (ver `docs/DECISOES.md` #25). O que falta é só validar em iPhone real com modelos
