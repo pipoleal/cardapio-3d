@@ -10,16 +10,27 @@ import { assertUploadAuthorized } from "@/lib/storage/authorize-upload";
 import { parseUploadPathname } from "@/lib/storage/pathnames";
 
 const MAX_CAPTURE_BYTES = 8 * 1024 * 1024;
+// Mesmo limite pedido pro assistente de captura por vídeo (10-15s, 720p).
+const MAX_CAPTURE_VIDEO_BYTES = 50 * 1024 * 1024;
 
 async function resolveUploadConstraints(
   pathname: string,
 ): Promise<{ allowedContentTypes: string[]; maximumSizeInBytes: number }> {
   const parsed = parseUploadPathname(pathname);
-  if (!parsed || parsed.kind !== "capture") {
-    throw new Error("Caminho de upload inválido.");
+  if (!parsed) throw new Error("Caminho de upload inválido.");
+
+  if (parsed.kind === "capture") {
+    await assertUploadAuthorized(parsed);
+    return { allowedContentTypes: ["image/webp"], maximumSizeInBytes: MAX_CAPTURE_BYTES };
   }
-  await assertUploadAuthorized(parsed);
-  return { allowedContentTypes: ["image/webp"], maximumSizeInBytes: MAX_CAPTURE_BYTES };
+  if (parsed.kind === "capture-video") {
+    await assertUploadAuthorized(parsed);
+    return {
+      allowedContentTypes: ["video/webm", "video/mp4", "video/quicktime"],
+      maximumSizeInBytes: MAX_CAPTURE_VIDEO_BYTES,
+    };
+  }
+  throw new Error("Caminho de upload inválido.");
 }
 
 /**

@@ -8,10 +8,12 @@ export function Model3DCard({
   tenantId,
   tenantSlug,
   product,
+  isSuperadmin = false,
 }: {
   tenantId: string;
   tenantSlug: string;
   product: Product;
+  isSuperadmin?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5">
@@ -20,6 +22,7 @@ export function Model3DCard({
         tenantSlug={tenantSlug}
         productId={product.id}
         initialModel={product.model}
+        isSuperadmin={isSuperadmin}
       />
 
       <ProductCoverUpload tenantId={tenantId} productId={product.id} coverUrl={product.coverImage?.url} />

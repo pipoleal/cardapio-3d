@@ -27,6 +27,23 @@ describe("parseUploadPathname", () => {
     });
   });
 
+  it("aceita o formato de vídeo de captura (webm, mp4 e mov)", () => {
+    expect(parseUploadPathname("tenants/demo/products/abc123/captures/job1/video.webm")).toEqual({
+      kind: "capture-video",
+      tenantId: "demo",
+      productId: "abc123",
+      captureId: "job1",
+      ext: "webm",
+    });
+    expect(parseUploadPathname("tenants/demo/products/abc123/captures/job1/video.mov")).toEqual({
+      kind: "capture-video",
+      tenantId: "demo",
+      productId: "abc123",
+      captureId: "job1",
+      ext: "mov",
+    });
+  });
+
   it("aceita o formato de modelo 3D (glb e usdz)", () => {
     expect(parseUploadPathname("tenants/demo/products/abc123/models/model.glb")).toEqual({
       kind: "model",

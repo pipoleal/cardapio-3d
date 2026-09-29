@@ -15,6 +15,12 @@ service firebase.storage {
       return request.resource.size < maxMb * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
+    // Rota "Vídeo · escaneamento" (CaptureFlow.tsx) — 10-15s/720p, até 50MB
+    // (mesmo teto do MAX_CAPTURE_VIDEO_BYTES da rota do Vercel Blob).
+    function isVideo(maxMb) {
+      return request.resource.size < maxMb * 1024 * 1024
+        && request.resource.contentType.matches('video/(webm|mp4|quicktime)');
+    }
     function isModel(maxMb) {
       return request.resource.size < maxMb * 1024 * 1024
         && request.resource.contentType.matches('model/.*|application/octet-stream');
@@ -34,7 +40,7 @@ service firebase.storage {
 
     match /tenants/{tenantId}/products/{productId}/captures/{jobId}/{file} {
       allow read: if isOwner(tenantId);
-      allow write: if isOwner(tenantId) && isImage(8);
+      allow write: if isOwner(tenantId) && (isImage(8) || isVideo(50));
     }
 
     // GLB/USDZ/poster: normalmente só o servidor escreve (copiando da

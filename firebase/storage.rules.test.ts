@@ -131,6 +131,18 @@ describe("tenants/{tenantId}/products/{productId}/captures/{jobId}/{file}", () =
     await assertFails(uploadBytes(ref(otherStorage(), path), STUB_FILE, { contentType: "image/jpeg" }));
     await assertFails(uploadBytes(ref(anonStorage(), path), STUB_FILE, { contentType: "image/jpeg" }));
   });
+
+  // Rota "Vídeo · escaneamento" (CaptureFlow.tsx) — mesma pasta, arquivo
+  // "video.webm"/"video.mp4"/"video.mov" em vez de uma pose.
+  it("dono escreve vídeo (webm/mp4/quicktime); recusa contentType que não é imagem nem vídeo", async () => {
+    const videoPath = `tenants/${TENANT_ID}/products/prod1/captures/job1/video.webm`;
+    await assertSucceeds(uploadBytes(ref(ownerStorage(), videoPath), STUB_FILE, { contentType: "video/webm" }));
+    await assertSucceeds(uploadBytes(ref(ownerStorage(), videoPath), STUB_FILE, { contentType: "video/mp4" }));
+    await assertSucceeds(
+      uploadBytes(ref(ownerStorage(), videoPath), STUB_FILE, { contentType: "video/quicktime" }),
+    );
+    await assertFails(uploadBytes(ref(ownerStorage(), videoPath), STUB_FILE, { contentType: "application/pdf" }));
+  });
 });
 
 describe("tenants/{tenantId}/products/{productId}/models/{file}", () => {

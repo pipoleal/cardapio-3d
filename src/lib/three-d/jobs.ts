@@ -5,6 +5,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { getStorageProvider } from "@/lib/storage";
 import { finalizeModelOutputs } from "./finalize";
 import type { ModelTaskResult } from "./provider";
+import { cleanupSelfHostedTask } from "./selfhosted";
 
 export type ActiveModelJob = { jobId: string; productId: string };
 
@@ -78,8 +79,16 @@ export async function applyModelTaskResult(
       const previousModel = productSnap.data()?.model as Record<string, unknown> | undefined;
 
       const finalized = await finalizeModelOutputs(tenantId, productId, result.outputs);
+      // Self-hosted já manda o custo real em centavos (tempo de GPU × preço,
+      // calculado no worker); Meshy manda créditos consumidos, convertidos
+      // aqui via MESHY_CREDIT_PRICE_CENTS.
       const creditPriceCents = Number(process.env.MESHY_CREDIT_PRICE_CENTS ?? 0);
-      const costCents = result.consumedCredits ? Math.round(result.consumedCredits * creditPriceCents) : 0;
+      const costCents =
+        result.costCents ?? (result.consumedCredits ? Math.round(result.consumedCredits * creditPriceCents) : 0);
+      // A rota já foi gravada certa na criação do job (POST /api/models) —
+      // reler do job em vez de hardcodar aqui, senão video_scan vira
+      // photos_ai de volta (esse `model: {...}` substitui o mapa inteiro).
+      const route = (job.videoPath as string | undefined) ? "video_scan" : "photos_ai";
 
       await jobRef.update({
         status: "succeeded",
@@ -94,8 +103,9 @@ export async function applyModelTaskResult(
           glbPath: finalized.glbPath,
           ...(finalized.usdzUrl ? { usdzUrl: finalized.usdzUrl, usdzPath: finalized.usdzPath } : {}),
           ...(finalized.posterUrl ? { posterUrl: finalized.posterUrl } : {}),
+          ...(job.aiModel ? { aiModel: job.aiModel } : {}),
           jobId,
-          route: "photos_ai",
+          route,
           costCents,
           fileSizeBytes: finalized.fileSizeBytes,
           updatedAt: FieldValue.serverTimestamp(),
@@ -104,6 +114,7 @@ export async function applyModelTaskResult(
       });
       revalidateTag(`tenant:${tenantId}`, "max");
       await deleteOldModelFiles(previousModel);
+      if (job.provider === "selfhosted") await cleanupSelfHostedTask(job.providerTaskId as string);
     }
 
     return { status: "succeeded", progress: 100 };

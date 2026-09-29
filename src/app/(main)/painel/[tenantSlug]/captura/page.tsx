@@ -17,7 +17,7 @@ export default async function CapturaPage(props: PageProps<"/painel/[tenantSlug]
   const productId = Array.isArray(produto) ? produto[0] : produto;
   if (!productId) notFound();
 
-  const { tenant } = await requireTenantOwner(tenantSlug);
+  const { tenant, user } = await requireTenantOwner(tenantSlug);
   const { products } = await getMenu(tenant.id);
   const product = products.find((item) => item.id === productId);
   if (!product) notFound();
@@ -28,6 +28,7 @@ export default async function CapturaPage(props: PageProps<"/painel/[tenantSlug]
       tenantSlug={tenant.slug}
       productId={product.id}
       productName={resolveLocalizedText(product.name, "pt", product.i18nStatus)}
+      isSuperadmin={user.isSuperadmin}
     />
   );
 }

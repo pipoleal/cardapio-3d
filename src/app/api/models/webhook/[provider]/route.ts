@@ -48,6 +48,24 @@ export async function POST(request: NextRequest, props: { params: Promise<{ prov
     const data = body as MeshyTaskResponse & { task_id?: string; result?: string };
     providerTaskId = data.id ?? data.task_id ?? data.result;
     result = parseMeshyTaskResponse(data);
+  } else if (provider === "selfhosted") {
+    // Payload já no nosso próprio formato (o worker é nosso, sem parser
+    // dedicado tipo o da Meshy) — ver lib/three-d/selfhosted.ts.
+    const data = body as {
+      providerTaskId?: string;
+      status?: ModelTaskResult["status"];
+      outputs?: { glbUrl: string; posterUrl?: string };
+      costCents?: number;
+      error?: string;
+    };
+    providerTaskId = data.providerTaskId;
+    result = {
+      status: data.status ?? "failed",
+      progress: data.status === "succeeded" ? 100 : 0,
+      outputs: data.outputs ? { glbUrl: data.outputs.glbUrl, thumbnailUrl: data.outputs.posterUrl } : undefined,
+      error: data.error,
+      costCents: data.costCents,
+    };
   } else {
     return errorResponse("unknown_provider", `Provider "${provider}" não suportado.`, 404);
   }

@@ -17,6 +17,8 @@ export const productModelSchema = z.object({
   jobId: z.string().optional(),
   scale: z.number().optional(),
   route: z.enum(["photos_ai", "video_scan", "upload"]).optional(),
+  // Só quando gerado pelo provider self-hosted — qual IA rodou (visível só pro superadmin no painel).
+  aiModel: z.enum(["trellis", "hunyuan"]).optional(),
   costCents: z.number().optional(),
   fileSizeBytes: z.number().optional(),
   updatedAt: z.date().optional(),

@@ -24,6 +24,11 @@ const ROUTE_LABEL: Record<NonNullable<Model["route"]>, string> = {
   upload: "Upload manual",
 };
 
+const AI_MODEL_LABEL: Record<NonNullable<Model["aiModel"]>, string> = {
+  trellis: "TRELLIS",
+  hunyuan: "Hunyuan3D-2mv-turbo",
+};
+
 // Mesmo limite do token gerado em /api/blob/upload/public/route.ts —
 // checagem no cliente só evita mandar um arquivo grande à toa; o servidor
 // já recusa de novo se driblar isso.
@@ -45,11 +50,13 @@ export function Model3DStatus({
   tenantSlug,
   productId,
   initialModel,
+  isSuperadmin = false,
 }: {
   tenantId: string;
   tenantSlug: string;
   productId: string;
   initialModel: Model;
+  isSuperadmin?: boolean;
 }) {
   const [model, setModel] = useState<Model>(initialModel);
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -144,6 +151,12 @@ export function Model3DStatus({
             <div className="flex justify-between">
               <dt>Rota</dt>
               <dd>{ROUTE_LABEL[model.route]}</dd>
+            </div>
+          )}
+          {isSuperadmin && model.aiModel && (
+            <div className="flex justify-between">
+              <dt>Modelo de IA</dt>
+              <dd>{AI_MODEL_LABEL[model.aiModel]}</dd>
             </div>
           )}
           {typeof model.costCents === "number" && (

@@ -31,3 +31,16 @@ export async function resolveInputImageUrls(paths: string[]): Promise<string[]> 
     paths.map((path) => storage.getExternalReadUrl(path, { access: "private", ttlSeconds: INPUT_URL_TTL_SECONDS })),
   );
 }
+
+/** Mesmo fallback de `resolveInputImageUrls`, só que pra um único vídeo (rota "Vídeo · escaneamento", só o provider self-hosted usa). */
+export async function resolveInputVideoUrl(path: string): Promise<string> {
+  const storage = getStorageProvider();
+
+  if (storage.name === "firebase" && process.env.NEXT_PUBLIC_USE_EMULATORS === "true") {
+    const buffer = await storage.downloadBuffer(path);
+    const contentType = path.endsWith(".mp4") ? "video/mp4" : "video/webm";
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  }
+
+  return storage.getExternalReadUrl(path, { access: "private", ttlSeconds: INPUT_URL_TTL_SECONDS });
+}

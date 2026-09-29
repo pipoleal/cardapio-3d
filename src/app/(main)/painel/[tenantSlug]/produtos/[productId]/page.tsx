@@ -17,7 +17,7 @@ export default async function EditProductPage(
   props: PageProps<"/painel/[tenantSlug]/produtos/[productId]">,
 ) {
   const { tenantSlug, productId } = await props.params;
-  const { tenant } = await requireTenantOwner(tenantSlug);
+  const { tenant, user } = await requireTenantOwner(tenantSlug);
   const { categories, products } = await getMenu(tenant.id);
   const product = products.find((item) => item.id === productId);
   if (!product) notFound();
@@ -50,7 +50,12 @@ export default async function EditProductPage(
       />
 
       <div className="flex flex-col gap-6">
-        <Model3DCard tenantId={tenant.id} tenantSlug={tenant.slug} product={product} />
+        <Model3DCard
+          tenantId={tenant.id}
+          tenantSlug={tenant.slug}
+          product={product}
+          isSuperadmin={user.isSuperadmin}
+        />
         <TranslationsCard
           tenantId={tenant.id}
           kind="product"
