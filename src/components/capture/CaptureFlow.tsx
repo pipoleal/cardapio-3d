@@ -87,6 +87,9 @@ export function CaptureFlow({
   const videoFileInputRef = useRef<HTMLInputElement>(null);
   const videoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [videoPhase, setVideoPhase] = useState<VideoPhase>("idle");
+  // Bump manual pra reabrir a câmera depois de "Gravar de novo" (a câmera
+  // já foi liberada em finishRecording) — ver o efeito de câmera abaixo.
+  const [videoAttempt, setVideoAttempt] = useState(0);
   const [videoCameraFailed, setVideoCameraFailed] = useState(() => !hasMediaRecorder());
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
@@ -135,8 +138,16 @@ export function CaptureFlow({
   // Mesma lógica da câmera de fotos (câmera ao vivo quando possível, senão
   // <input capture="environment">), só que com áudio desligado e resolução
   // alvo 720p — pedido explícito do Felipe (10-15s, 720p, até 50MB).
+  //
+  // De propósito SEM `videoPhase` nas dependências: esse efeito só cuida de
+  // abrir/fechar a câmera, nunca de iniciar/parar gravação — só
+  // `videoAttempt` (bump manual em `handleRetakeVideo`) força reabrir.
+  // Achado na prática: quando `videoPhase` estava aqui, iniciar a gravação
+  // (idle → recording) já disparava esse efeito de novo, cuja limpeza para
+  // a stream e o MediaRecorder que acabaram de começar — a gravação nunca
+  // durava mais que um instante.
   useEffect(() => {
-    if (activeTab !== "video" || videoPhase !== "idle" || videoCameraFailed) {
+    if (activeTab !== "video" || videoCameraFailed) {
       videoStreamRef.current?.getTracks().forEach((track) => track.stop());
       videoStreamRef.current = null;
       return;
@@ -162,17 +173,18 @@ export function CaptureFlow({
 
     return () => {
       cancelled = true;
-      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
-      if (videoTimerRef.current) {
-        clearInterval(videoTimerRef.current);
-        videoTimerRef.current = null;
-      }
       videoStreamRef.current?.getTracks().forEach((track) => track.stop());
       videoStreamRef.current = null;
     };
-  }, [activeTab, videoPhase, videoCameraFailed]);
+  }, [activeTab, videoCameraFailed, videoAttempt]);
 
   function finishRecording(blob: Blob) {
+    // Terminou a gravação (manual, automática ou fallback de arquivo) — vai
+    // pra revisão, que mostra o vídeo gravado, não a câmera ao vivo; libera
+    // a câmera agora (senão a luz da câmera do celular fica acesa à toa).
+    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+    videoStreamRef.current?.getTracks().forEach((track) => track.stop());
+    videoStreamRef.current = null;
     setVideoBlob(blob);
     setVideoPreviewUrl(URL.createObjectURL(blob));
     setVideoPhase("review");
@@ -226,6 +238,7 @@ export function CaptureFlow({
     setVideoError(null);
     setVideoCameraFailed(!hasMediaRecorder());
     setVideoPhase("idle");
+    setVideoAttempt((n) => n + 1);
   }
 
   async function handleSubmitVideo() {
