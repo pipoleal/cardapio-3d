@@ -251,14 +251,15 @@ export function CaptureFlow({
     setError(null);
     try {
       const captureId = crypto.randomUUID();
-      const ext = videoBlob.type.includes("quicktime")
-        ? "mov"
-        : videoBlob.type.includes("mp4")
-          ? "mp4"
-          : "webm";
+      // `MediaRecorder.mimeType` (o que vira `videoBlob.type`) inclui o
+      // codec (ex.: "video/webm;codecs=vp09.00.10.08") — precisa do tipo
+      // "nu" pro Content-Type do upload, senão a Vercel Blob recusa (a
+      // lista de `allowedContentTypes` do servidor é comparação exata).
+      const baseType = (videoBlob.type || "video/webm").split(";")[0]!.trim();
+      const ext = baseType.includes("quicktime") ? "mov" : baseType.includes("mp4") ? "mp4" : "webm";
       const path = `tenants/${tenantId}/products/${productId}/captures/${captureId}/video.${ext}`;
       const uploaded = await uploadFile(path, videoBlob, {
-        contentType: videoBlob.type || "video/webm",
+        contentType: baseType,
         access: "private",
       });
 
