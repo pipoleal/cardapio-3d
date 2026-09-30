@@ -9,6 +9,7 @@ import { DiscreetWhatsappLink } from "@/components/menu/DiscreetWhatsappLink";
 import { ProductPurchasePanel } from "@/components/menu/ProductPurchasePanel";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { ArButton } from "@/components/viewer/ArButton";
+import { isFeatureEnabled } from "@/config/features";
 import { ProductMedia } from "@/components/viewer/ProductMedia";
 import { buildExternalPath, tenantPathPrefix } from "@/i18n/resolve-locale";
 import type { AppLocale } from "@/i18n/routing";
@@ -115,7 +116,10 @@ export default async function ProductPage(
     : undefined;
 
   const hasModel =
-    product.model.status === "ready" && Boolean(product.model.glbUrl || product.model.usdzUrl);
+    isFeatureEnabled(tenant, "modelos3D") &&
+    product.model.status === "ready" &&
+    Boolean(product.model.glbUrl || product.model.usdzUrl);
+  const arAllowed = hasModel && isFeatureEnabled(tenant, "realidadeAumentada");
 
   // Mesmo i18nStatus do produto — a aprovação é por produto, não por campo.
   const nameInStoreLocale = resolveLocalizedText(product.name, tenant.defaultLocale, product.i18nStatus);
@@ -186,7 +190,7 @@ export default async function ProductPage(
 
       {/* "Ver na sua mesa (AR)" só existe quando há modelo de verdade — bem
           escondido, não desabilitado (um botão cinza pareceria quebrado). */}
-      {hasModel && <ArButton label={tProduct("arButton")} />}
+      {arAllowed && <ArButton label={tProduct("arButton")} />}
 
       <div className="flex flex-col gap-1">
         <h1 className="font-heading text-2xl font-semibold text-ink">{name}</h1>

@@ -332,6 +332,10 @@ export async function seed() {
       ownerUids: [],
       plan: "pilot",
       limits: { modelsPerMonth: 10, products: 50 },
+      // Padrão global (src/config/features.ts) é tudo desligado desde o
+      // lançamento da boaconfe — a demo é a loja de teste/vitrine, sempre
+      // com as flags ligadas (ver docs/DECISOES.md).
+      features: { modelos3D: true, realidadeAumentada: true, fotosIA: true },
       active: true,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),

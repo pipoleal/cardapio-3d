@@ -15,19 +15,27 @@ type ProductCardProps = {
   fresh: boolean;
   /** `/l/<slug>` no modo por caminho da staging, `""` no modo subdomínio — ver `tenantPathPrefix`. */
   tenantPrefix: string;
+  /** `isFeatureEnabled(tenant, "modelos3D")` — loja com a flag desligada nunca mostra o selo 3D. */
+  modelos3DEnabled: boolean;
 };
 
 // Card do cardápio (mockup 01): miniatura 96px + selo 3D, nome, descrição
 // 2 linhas, "Contém/Pode conter" em texto (não chip — isso é só na página
 // do produto), preço ou "Esgotado hoje".
-export async function ProductCard({ product, locale, fresh, tenantPrefix }: ProductCardProps) {
+export async function ProductCard({
+  product,
+  locale,
+  fresh,
+  tenantPrefix,
+  modelos3DEnabled,
+}: ProductCardProps) {
   // locale explícito: ver o comentário em loja/[tenant]/[locale]/page.tsx.
   const t = await getTranslations({ locale, namespace: "menu" });
   const name = resolveLocalizedText(product.name, locale, product.i18nStatus);
   const description = product.description
     ? resolveLocalizedText(product.description, locale, product.i18nStatus)
     : undefined;
-  const has3d = product.model.status === "ready";
+  const has3d = modelos3DEnabled && product.model.status === "ready";
 
   const allergenNames = product.allergens.map((allergen) => ALLERGEN_LABELS[allergen][locale]);
   const mayContainNames = (product.mayContain ?? []).map(

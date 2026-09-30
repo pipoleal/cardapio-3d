@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { TrackPageView } from "@/components/analytics/TrackPageView";
 import { CategoryTabs } from "@/components/menu/CategoryTabs";
+import { isFeatureEnabled } from "@/config/features";
 import { FreshBanner } from "@/components/menu/FreshBanner";
 import { ProductCard } from "@/components/menu/ProductCard";
 import { WhatsAppCta } from "@/components/menu/WhatsAppCta";
@@ -109,6 +110,7 @@ export default async function LojaPage(props: PageProps<"/loja/[tenant]/[locale]
             products={products}
             locale={localeTyped}
             tenantPrefix={tenantPrefix}
+            modelos3DEnabled={isFeatureEnabled(tenant, "modelos3D")}
           />
         </Suspense>
       )}
@@ -190,11 +192,13 @@ async function MenuSections({
   products,
   locale,
   tenantPrefix,
+  modelos3DEnabled,
 }: {
   categories: Category[];
   products: Product[];
   locale: AppLocale;
   tenantPrefix: string;
+  modelos3DEnabled: boolean;
 }) {
   await connection();
   // Date.now() depois de connection() é o padrão documentado do Next 16
@@ -226,6 +230,7 @@ async function MenuSections({
                   locale={locale}
                   fresh={isFresh(product.freshFromOvenAt, FRESH_HOURS, now)}
                   tenantPrefix={tenantPrefix}
+                  modelos3DEnabled={modelos3DEnabled}
                 />
               ))}
             </div>

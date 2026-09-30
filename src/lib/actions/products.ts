@@ -3,11 +3,12 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { updateTag } from "next/cache";
 import { z } from "zod";
+import { isFeatureEnabled } from "@/config/features";
 import { adminDb } from "@/lib/firebase/admin";
 import { allergenSchema, mediaUrlSchema } from "@/lib/schemas/common";
 import { getStorageProvider } from "@/lib/storage";
 import { deleteOldModelFiles } from "@/lib/three-d/jobs";
-import { assertTenantOwner } from "./guard";
+import { ActionError, assertTenantOwner } from "./guard";
 
 // Espelha os campos do mockup 05 (Informações): nome, categoria, preço,
 // descrição, alergênicos, "pode conter", e os 3 interruptores. Variações
@@ -197,6 +198,9 @@ export async function setProductModelUpload(
   input: z.infer<typeof modelUploadInputSchema>,
 ): Promise<void> {
   const { tenant } = await assertTenantOwner(tenantId);
+  if (!isFeatureEnabled(tenant, "modelos3D")) {
+    throw new ActionError("Modelos 3D estão desligados pra essa loja.");
+  }
   const parsed = modelUploadInputSchema.parse(input);
 
   const productRef = adminDb.collection("tenants").doc(tenant.id).collection("products").doc(productId);

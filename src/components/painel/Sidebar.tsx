@@ -29,16 +29,21 @@ export function Sidebar({
   switcherTenants,
   userEmail,
   isSuperadmin,
+  fotosIAEnabled,
 }: {
   currentSlug: string;
   switcherTenants: SwitcherTenant[];
   userEmail: string | undefined;
   isSuperadmin: boolean;
+  fotosIAEnabled: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const base = `/painel/${currentSlug}`;
+  // "Captura 3D" só existe com fotosIA ligada pra essa loja — ver
+  // src/config/features.ts.
+  const navItems = NAV_ITEMS.filter((item) => item.href !== "/captura" || fotosIAEnabled);
 
   async function handleSignOut() {
     await fetch("/api/auth/signout", { method: "POST" });
@@ -107,7 +112,7 @@ export function Sidebar({
           )}
 
           <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const href = `${base}${item.href}`;
               const active = item.href === "" ? pathname === base : pathname.startsWith(href);
               return (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ModelJobsPoller } from "@/components/painel/ModelJobsPoller";
 import { Sidebar } from "@/components/painel/Sidebar";
+import { isFeatureEnabled } from "@/config/features";
 import { requireTenantOwner } from "@/lib/auth/session";
 import { listActiveModelJobs } from "@/lib/three-d/jobs";
 
@@ -26,6 +27,7 @@ export default async function PainelTenantLayout(
         switcherTenants={switcherTenants.map((item) => ({ slug: item.slug, name: item.name }))}
         userEmail={user.email}
         isSuperadmin={user.isSuperadmin}
+        fotosIAEnabled={isFeatureEnabled(tenant, "fotosIA")}
       />
       <main className="min-w-0 flex-1 overflow-y-auto p-4 lg:p-8">{props.children}</main>
       <ModelJobsPoller tenantSlug={tenant.slug} jobs={activeJobs} />

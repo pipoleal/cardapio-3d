@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { MarkFreshForm } from "@/components/painel/MarkFreshForm";
+import { isFeatureEnabled } from "@/config/features";
 import { requireTenantOwner } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
 import { resolveLocalizedText } from "@/lib/localized-text";
@@ -45,6 +46,7 @@ export default async function PainelVisaoGeralPage(
 
   const { tenant } = await requireTenantOwner(tenantSlug);
   const [{ products }, stats] = await Promise.all([getMenu(tenant.id), getStats(tenant.id, days)]);
+  const fotosIAEnabled = isFeatureEnabled(tenant, "fotosIA");
 
   const freshCandidates = products.map((product) => ({
     id: product.id,
@@ -215,39 +217,43 @@ export default async function PainelVisaoGeralPage(
           </div>
         </Card>
 
-        <Card className="p-5">
-          <h2 className="font-heading text-lg font-semibold text-ink">Modelos 3D</h2>
-          <div className="mt-3 flex flex-col divide-y divide-border">
-            {products.map((product) => (
-              <div key={product.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                <p className="text-sm font-medium text-ink">
-                  {resolveLocalizedText(product.name, "pt", product.i18nStatus)}
-                </p>
-                {product.model.status === "none" ? (
-                  <Link
-                    href={`/painel/${tenant.slug}/captura?produto=${product.id}`}
-                    className="text-sm font-medium text-accent hover:underline"
-                  >
-                    Capturar agora
-                  </Link>
-                ) : (
-                  <span
-                    className={
-                      product.model.status === "ready"
-                        ? "text-sm font-medium text-success"
-                        : product.model.status === "failed"
-                          ? "text-sm font-medium text-rec"
-                          : "text-sm font-medium text-warning"
-                    }
-                  >
-                    {MODEL_STATUS_LABEL[product.model.status]}
-                  </span>
-                )}
-              </div>
-            ))}
-            {products.length === 0 && <p className="py-3 text-sm text-muted">Nenhum produto ainda.</p>}
-          </div>
-        </Card>
+        {isFeatureEnabled(tenant, "modelos3D") && (
+          <Card className="p-5">
+            <h2 className="font-heading text-lg font-semibold text-ink">Modelos 3D</h2>
+            <div className="mt-3 flex flex-col divide-y divide-border">
+              {products.map((product) => (
+                <div key={product.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                  <p className="text-sm font-medium text-ink">
+                    {resolveLocalizedText(product.name, "pt", product.i18nStatus)}
+                  </p>
+                  {product.model.status === "none" ? (
+                    fotosIAEnabled && (
+                      <Link
+                        href={`/painel/${tenant.slug}/captura?produto=${product.id}`}
+                        className="text-sm font-medium text-accent hover:underline"
+                      >
+                        Capturar agora
+                      </Link>
+                    )
+                  ) : (
+                    <span
+                      className={
+                        product.model.status === "ready"
+                          ? "text-sm font-medium text-success"
+                          : product.model.status === "failed"
+                            ? "text-sm font-medium text-rec"
+                            : "text-sm font-medium text-warning"
+                      }
+                    >
+                      {MODEL_STATUS_LABEL[product.model.status]}
+                    </span>
+                  )}
+                </div>
+              ))}
+              {products.length === 0 && <p className="py-3 text-sm text-muted">Nenhum produto ainda.</p>}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );

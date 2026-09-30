@@ -79,8 +79,23 @@ O Claude Code segue em ordem, marca `[x]` ao concluir e roda `lint` + `typecheck
       (`<input capture="environment">`) — o worker extrai os melhores quadros (ffmpeg + nitidez).
 - [x] Painel: seletor "Modelo de IA" (só superadmin, com o custo estimado do Hunyuan visível) no
       assistente de captura; card "Modelo 3D" mostra qual IA gerou (só superadmin).
-- [ ] Deploy em staging com `MODEL_PROVIDER=selfhosted` e roteiro de teste no celular com um doce
-      real (código pronto, aguardando a etapa de rollout).
+- [x] Deploy em staging com `MODEL_PROVIDER=selfhosted` e roteiro de teste no celular — testado de
+      ponta a ponta (fotos, vídeo) na loja `boaconfe` real.
+
+## Etapa 4.2 — 3D/AR/IA desligados por padrão (lançamento boaconfe)
+- [x] Feature flags globais (`src/config/features.ts`: `modelos3D`, `realidadeAumentada`,
+      `fotosIA`, todas `false`) com override por loja (`tenant.features`) — sem apagar nenhum
+      código nem dado, só controla o que é renderizado. Ver `docs/DECISOES.md` #31.
+- [x] Cardápio público (selo 3D, viewer, botão de AR) e painel (card Modelo 3D, "Captura 3D" na
+      sidebar, Visão Geral) escondem tudo relacionado quando a flag correspondente está desligada.
+- [x] Barreiras reais no servidor (não só esconder botão): `POST /api/models` e
+      `setProductModelUpload` recusam se a flag estiver desligada; `/painel/<slug>/captura`
+      redireciona no servidor.
+- [x] Loja `demo` é a única com as 3 flags ligadas (`scripts/seed.ts` local; ajuste manual único no
+      Firestore de staging) — continua testável em dev e na demo, `boaconfe` lança sem 3D/AR/IA.
+- [ ] Pacote maior do documento `CLAUDE-atualizacao.md` (papéis owner/admin/designer + convite,
+      temas de cor com paleta do BoaPedida, estrutura de plano/mensalidade) — etapa futura separada,
+      não implementada ainda.
 
 ## Etapa 5 — Analytics
 - [x] `POST /api/track` + helper `track()` no cliente (`sendBeacon`).

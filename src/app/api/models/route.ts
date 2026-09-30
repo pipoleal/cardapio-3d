@@ -1,6 +1,7 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
+import { isFeatureEnabled } from "@/config/features";
 import { getSessionUser } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
 import { getTenantBySlug } from "@/lib/tenant";
@@ -40,6 +41,9 @@ export async function POST(request: NextRequest) {
   if (!tenant) return errorResponse("not_found", "Loja não encontrada.", 404);
   if (!user.isSuperadmin && !tenant.ownerUids.includes(user.uid)) {
     return errorResponse("forbidden", "Sem permissão nesta loja.", 403);
+  }
+  if (!isFeatureEnabled(tenant, "fotosIA")) {
+    return errorResponse("feature_disabled", "Geração por IA está desligada pra essa loja.", 403);
   }
 
   const effectiveAiModel: AiModel = resolveEffectiveAiModel(aiModel, user.isSuperadmin);

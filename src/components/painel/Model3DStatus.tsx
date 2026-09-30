@@ -51,12 +51,14 @@ export function Model3DStatus({
   productId,
   initialModel,
   isSuperadmin = false,
+  fotosIAEnabled,
 }: {
   tenantId: string;
   tenantSlug: string;
   productId: string;
   initialModel: Model;
   isSuperadmin?: boolean;
+  fotosIAEnabled: boolean;
 }) {
   const [model, setModel] = useState<Model>(initialModel);
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -197,12 +199,14 @@ export function Model3DStatus({
 
       {model.status !== "processing" && (
         <>
-          <Link
-            href={captureHref}
-            className="inline-flex min-h-11 items-center justify-center rounded-input border border-border text-sm font-medium text-ink hover:bg-bg"
-          >
-            {model.status === "none" ? "Gerar por fotos (IA)" : "Refazer captura"}
-          </Link>
+          {fotosIAEnabled && (
+            <Link
+              href={captureHref}
+              className="inline-flex min-h-11 items-center justify-center rounded-input border border-border text-sm font-medium text-ink hover:bg-bg"
+            >
+              {model.status === "none" ? "Gerar por fotos (IA)" : "Refazer captura"}
+            </Link>
+          )}
 
           {!showUploadForm ? (
             <button

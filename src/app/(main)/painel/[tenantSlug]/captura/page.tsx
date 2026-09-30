@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CaptureFlow } from "@/components/capture/CaptureFlow";
+import { isFeatureEnabled } from "@/config/features";
 import { requireTenantOwner } from "@/lib/auth/session";
 import { resolveLocalizedText } from "@/lib/localized-text";
 import { getMenu } from "@/lib/menu";
@@ -18,6 +19,9 @@ export default async function CapturaPage(props: PageProps<"/painel/[tenantSlug]
   if (!productId) notFound();
 
   const { tenant, user } = await requireTenantOwner(tenantSlug);
+  // Barreira no servidor, não só esconder o link do menu — alguém podia
+  // digitar a URL direto (ver src/config/features.ts).
+  if (!isFeatureEnabled(tenant, "fotosIA")) redirect(`/painel/${tenant.slug}/produtos/${productId}`);
   const { products } = await getMenu(tenant.id);
   const product = products.find((item) => item.id === productId);
   if (!product) notFound();

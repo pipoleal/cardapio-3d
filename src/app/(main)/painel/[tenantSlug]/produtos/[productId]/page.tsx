@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Model3DCard } from "@/components/painel/Model3DCard";
 import { ProductForm } from "@/components/painel/ProductForm";
 import { TranslationsCard } from "@/components/painel/TranslationsCard";
+import { isFeatureEnabled } from "@/config/features";
 import { requireTenantOwner } from "@/lib/auth/session";
 import { isFresh } from "@/lib/fresh";
 import { resolveLocalizedText } from "@/lib/localized-text";
@@ -50,12 +51,15 @@ export default async function EditProductPage(
       />
 
       <div className="flex flex-col gap-6">
-        <Model3DCard
-          tenantId={tenant.id}
-          tenantSlug={tenant.slug}
-          product={product}
-          isSuperadmin={user.isSuperadmin}
-        />
+        {isFeatureEnabled(tenant, "modelos3D") && (
+          <Model3DCard
+            tenantId={tenant.id}
+            tenantSlug={tenant.slug}
+            product={product}
+            isSuperadmin={user.isSuperadmin}
+            fotosIAEnabled={isFeatureEnabled(tenant, "fotosIA")}
+          />
+        )}
         <TranslationsCard
           tenantId={tenant.id}
           kind="product"

@@ -35,6 +35,15 @@ export const tenantSchema = z.object({
     modelsPerMonth: z.number(),
     products: z.number(),
   }),
+  // Override por loja das flags globais (src/config/features.ts) — ausência
+  // de campo/chave usa o padrão global. Ver docs/DECISOES.md.
+  features: z
+    .object({
+      modelos3D: z.boolean().optional(),
+      realidadeAumentada: z.boolean().optional(),
+      fotosIA: z.boolean().optional(),
+    })
+    .optional(),
   active: z.boolean(),
   // Date, não Timestamp: precisa ser serializável pra sair de uma função
   // 'use cache' (lib/tenant.ts). Convertido em lib/firestore-dates.ts.
