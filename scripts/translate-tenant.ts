@@ -9,6 +9,12 @@
  * manual) — é um backfill de lançamento, não o fluxo do dia a dia. Rodar de
  * novo é seguro: sobrescreve com uma tradução nova, não duplica nada.
  *
+ * TODO (pós-lançamento, pedido do Felipe): hoje roda tudo incondicionalmente
+ * — se alguém editar EN/ES à mão no painel depois do backfill, rodar o
+ * script de novo apaga esse ajuste manual sem avisar. Adicionar um
+ * `--only-missing` (ou pular item com `i18nStatus.<locale> === "approved"`
+ * já setado) antes de virar rotina.
+ *
  * "google" (`TRANSLATOR_PROVIDER=google`) usa a Cloud Translation API de
  * verdade, reaproveitando as MESMAS credenciais do Admin SDK
  * (FIREBASE_ADMIN_*) — não importamos `src/lib/translate` (tem
