@@ -83,7 +83,7 @@ export default async function LojaPage(props: PageProps<"/loja/[tenant]/[locale]
           </p>
           <h1 className="font-heading text-2xl font-semibold text-ink">{tenant.name}</h1>
         </div>
-        <LanguageSwitcher currentLocale={localeTyped} tenantPrefix={tenantPrefix} />
+        <LanguageSwitcher currentLocale={localeTyped} tenantPrefix={tenantPrefix} pathWithoutLocale="/" />
       </header>
 
       <Suspense fallback={null}>

@@ -174,7 +174,12 @@ export default async function ProductPage(
           <BackIcon />
         </Link>
         <p className="truncate text-sm font-medium text-muted">{tenant.name}</p>
-        <LanguageSwitcher currentLocale={localeTyped} tenantPrefix={tenantPrefix} variant="compact" />
+        <LanguageSwitcher
+          currentLocale={localeTyped}
+          tenantPrefix={tenantPrefix}
+          pathWithoutLocale={`/p/${product.id}`}
+          variant="compact"
+        />
       </header>
 
       <TrackPageView event="product_view" tenantId={tenant.id} productId={product.id} locale={localeTyped} origin={origin} />
@@ -218,7 +223,13 @@ export default async function ProductPage(
 
       {description && <p className="text-sm text-muted">{description}</p>}
 
-      <AllergensCard allergens={product.allergens} mayContain={product.mayContain} locale={localeTyped} />
+      {/* Sem descrição, o preço/"serve N" fica colado no card de
+          Alergênicos (só o gap-5 do container, sem o parágrafo de
+          respiro no meio) — acerto fino só pra esse caso, não mexe no
+          espaçamento de quem já tem descrição. */}
+      <div className={!description ? "mt-2" : undefined}>
+        <AllergensCard allergens={product.allergens} mayContain={product.mayContain} locale={localeTyped} />
+      </div>
 
       {showDiscreetHint && (
         <DiscreetWhatsappLink

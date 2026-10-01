@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { usePathname } from "next/navigation";
-import { buildExternalPath, resolveLocaleForPath } from "@/i18n/resolve-locale";
+import { buildExternalPath } from "@/i18n/resolve-locale";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { pillClassName } from "./Pill";
 
@@ -14,19 +13,29 @@ type LanguageSwitcherProps = {
   currentLocale: AppLocale;
   /** `/l/<slug>` no modo por caminho da staging, `""` no modo subdomínio — ver `tenantPathPrefix`. */
   tenantPrefix: string;
+  /**
+   * Path relativo ao tenant+locale atual, sem o prefixo de locale nem o de
+   * tenant (ex.: `"/"` na home da loja, `"/p/<id>"` na página do produto) —
+   * sempre calculado pelo Server Component que já sabe exatamente qual
+   * página está servindo, nunca por `usePathname()` aqui dentro. Bug real,
+   * reproduzido só em build de produção (`next build && next start`, nunca
+   * em `next dev`): sob Partial Prerendering, este componente faz parte do
+   * shell ESTÁTICO da página — `usePathname()` resolvia pro path INTERNO
+   * do rewrite (`/loja/<slug>/<locale>`, o que o proxy.ts usa por baixo dos
+   * panos), não pro path externo que o navegador realmente mostra, gerando
+   * link duplicado tipo `/l/boaconfe/en/loja/boaconfe/pt`. Ver docs/DECISOES.md.
+   */
+  pathWithoutLocale: string;
   /** "pills": grupo PT/EN/ES lado a lado (mockup 01). "compact": globo + locale atual, abre as opções (mockup 02). */
   variant?: "pills" | "compact";
 };
 
-// Troca só o locale, mantém tenant e o resto do path — usa a mesma
-// resolução do proxy.ts para não duplicar a regra de onde o prefixo de
-// locale aparece na URL. `usePathname()` no modo por caminho devolve o path
-// com "/l/<slug>" ainda na frente (é o que o navegador vê de verdade) — por
-// isso `tenantPrefix` precisa ser tirado antes de resolver o locale e posto
-// de volta ao montar o link novo.
-export function LanguageSwitcher({ currentLocale, tenantPrefix, variant = "pills" }: LanguageSwitcherProps) {
-  const pathname = usePathname();
-  const { pathWithoutLocale } = resolveLocaleForPath(pathname, currentLocale, tenantPrefix);
+export function LanguageSwitcher({
+  currentLocale,
+  tenantPrefix,
+  pathWithoutLocale,
+  variant = "pills",
+}: LanguageSwitcherProps) {
   const [open, setOpen] = useState(false);
   const t = useTranslations("common");
 

@@ -2,11 +2,17 @@
  * Verifica que o modo por caminho (`NEXT_PUBLIC_PATH_TENANT_MODE=true`,
  * decisão nº 26 em `docs/DECISOES.md`) preserva o prefixo `/l/<slug>` em
  * toda navegação dentro da loja: abrir, clicar num produto, trocar de
- * idioma, voltar — a URL nunca deveria perder o prefixo em nenhum passo.
+ * idioma, voltar — a URL nunca deveria perder o prefixo em nenhum passo,
+ * e nenhuma dessas trocas pode responder 404 (bug real, ver docs/DECISOES.md:
+ * o seletor de idioma gerava link tipo `/l/boaconfe/en/loja/boaconfe/pt`).
  *
- * Precisa do servidor de dev rodando com o modo LIGADO (diferente dos
- * outros scripts `check-*`, que usam o modo subdomínio padrão):
- *   NEXT_PUBLIC_PATH_TENANT_MODE=true npm run dev
+ * IMPORTANTE: rodar contra um BUILD DE PRODUÇÃO (`next build && next start`),
+ * não `next dev` — o bug acima só acontece com Partial Prerendering de
+ * verdade (o shell estático da home da loja é onde o `usePathname()`
+ * resolvia errado); `next dev` nunca reproduz isso, então rodar só em dev
+ * dá falso-positivo de "passou".
+ *   NEXT_PUBLIC_PATH_TENANT_MODE=true npm run build
+ *   NEXT_PUBLIC_PATH_TENANT_MODE=true npm run start
  * (emuladores + seed também rodando, como os demais).
  *   npm run check-path-tenant
  */
@@ -65,6 +71,13 @@ async function run() {
     pathnameOf(page.url()).startsWith(`${PREFIX}/en/p/`),
     `trocar pra EN mantém o prefixo ${PREFIX} (e adiciona /en) — achado: ${pathnameOf(page.url())}`,
   );
+  // Não é só a URL "parecer" certa — confere que renderizou o produto de
+  // verdade, não a página de "não encontrado" (bug real corrigido: a URL
+  // quebrada caía no not-found da loja, não numa URL óbvia tipo /404).
+  check(
+    await page.getByRole("heading", { level: 1 }).first().isVisible(),
+    "página em EN depois da troca de idioma mostra o nome do produto (não é 404)",
+  );
 
   await Promise.all([
     page.waitForURL((url) => url.pathname === `${PREFIX}/en`),
@@ -75,6 +88,10 @@ async function run() {
   check(
     pathnameOf(page.url()) === `${PREFIX}/en`,
     `"voltar" a partir do EN mantém o prefixo ${PREFIX} e o locale — achado: ${pathnameOf(page.url())}`,
+  );
+  check(
+    (await page.locator('a[href^="/l/demo/p/"]').count()) > 0,
+    "home em EN depois do 'voltar' mostra os cards de produto (não é 404)",
   );
 
   // Trocar de volta pra PT (variant "pills" na home, sem dropdown) e conferir
