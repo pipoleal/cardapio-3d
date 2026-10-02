@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
+import { useToast } from "@/components/ui/Toast";
 import { ALLERGENS, ALLERGEN_LABELS } from "@/lib/allergens";
 import {
   createProduct,
@@ -39,6 +40,7 @@ export function ProductForm({
   freshInitially: boolean;
 }) {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [values, setValues] = useState<ProductFormValues>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +54,9 @@ export function ProductForm({
     try {
       await setProductFresh(tenantId, values.id, checked);
       router.refresh();
+    } catch {
+      setFresh(!checked); // volta pro estado anterior — a gravação não aconteceu.
+      showError("Não foi possível atualizar 'Saiu do forno'.");
     } finally {
       setFreshPending(false);
     }
@@ -91,12 +96,15 @@ export function ProductForm({
       if (values.id) {
         await updateProduct(tenantId, values.id, input);
         router.refresh();
+        showSuccess("Produto salvo.");
       } else {
         const newId = await createProduct(tenantId, input);
+        showSuccess("Produto criado.");
         router.push(`/painel/${tenantSlug}/produtos/${newId}`);
       }
     } catch {
       setError("Não foi possível salvar. Confira os campos e tente de novo.");
+      showError("Não foi possível salvar o produto.");
     } finally {
       setSaving(false);
     }
@@ -108,7 +116,10 @@ export function ProductForm({
     setSaving(true);
     try {
       await deleteProduct(tenantId, values.id);
+      showSuccess("Produto apagado.");
       router.push(`/painel/${tenantSlug}/produtos`);
+    } catch {
+      showError("Não foi possível apagar o produto. Tente de novo.");
     } finally {
       setSaving(false);
     }

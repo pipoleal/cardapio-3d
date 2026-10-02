@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { pillClassName } from "@/components/ui/Pill";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
 import { approveTranslation, translateEntity } from "@/lib/actions/translate";
 import type { I18nFieldStatus } from "@/lib/schemas/common";
 
@@ -31,6 +32,7 @@ export function TranslationsCard({
   i18nStatus?: { en?: I18nFieldStatus; es?: I18nFieldStatus };
 }) {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [locale, setLocale] = useState<Locale>("pt");
   const [pending, setPending] = useState(false);
 
@@ -39,6 +41,11 @@ export function TranslationsCard({
     try {
       await translateEntity(tenantId, kind, entityId, target);
       router.refresh();
+      showSuccess(`Traduzido para ${LOCALE_LABEL[target]} — revise antes de aprovar.`);
+    } catch {
+      // Falha real (API de tradução desligada, sem billing, etc.) — antes
+      // disso ficava só no console, parecendo que nada tinha acontecido.
+      showError(`Não foi possível traduzir para ${LOCALE_LABEL[target]}. Tente de novo em instantes.`);
     } finally {
       setPending(false);
     }
@@ -49,6 +56,9 @@ export function TranslationsCard({
     try {
       await approveTranslation(tenantId, kind, entityId, target);
       router.refresh();
+      showSuccess(`Tradução em ${LOCALE_LABEL[target]} aprovada.`);
+    } catch {
+      showError(`Não foi possível aprovar a tradução em ${LOCALE_LABEL[target]}.`);
     } finally {
       setPending(false);
     }

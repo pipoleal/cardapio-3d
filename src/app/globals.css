@@ -33,9 +33,23 @@
   /* Sobrescrevem font-sans/font-heading do Tailwind — ver src/app/layout.tsx (next/font). */
   --font-sans: var(--font-dm-sans), sans-serif;
   --font-heading: var(--font-fraunces), serif;
+
+  /* Toast (ui/Toast.tsx) — entra de baixo, sem biblioteca nova. */
+  --animate-toast-in: toast-in 0.2s ease-out;
 }
 
 body {
   background-color: var(--color-bg);
   color: var(--color-ink);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

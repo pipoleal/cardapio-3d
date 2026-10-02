@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { useToast } from "@/components/ui/Toast";
 import { createCategory, deleteCategory, reorderCategories, updateCategoryName } from "@/lib/actions/categories";
 
 type CategoryItem = { id: string; name: string };
@@ -19,6 +20,7 @@ export function CategoryManager({
   categories: CategoryItem[];
 }) {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -32,6 +34,9 @@ export function CategoryManager({
       await createCategory(tenantId, newName.trim());
       setNewName("");
       router.refresh();
+      showSuccess("Categoria criada.");
+    } catch {
+      showError("Não foi possível criar a categoria.");
     } finally {
       setPending(false);
     }
@@ -44,6 +49,9 @@ export function CategoryManager({
     try {
       await updateCategoryName(tenantId, id, editingName.trim());
       router.refresh();
+      showSuccess("Categoria salva.");
+    } catch {
+      showError("Não foi possível renomear a categoria.");
     } finally {
       setPending(false);
     }
@@ -55,6 +63,9 @@ export function CategoryManager({
     try {
       await deleteCategory(tenantId, id);
       router.refresh();
+      showSuccess("Categoria apagada.");
+    } catch {
+      showError("Não foi possível apagar a categoria.");
     } finally {
       setPending(false);
     }
@@ -73,6 +84,8 @@ export function CategoryManager({
         reordered.map((category) => category.id),
       );
       router.refresh();
+    } catch {
+      showError("Não foi possível reordenar as categorias.");
     } finally {
       setPending(false);
     }
