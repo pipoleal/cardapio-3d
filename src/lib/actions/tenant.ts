@@ -76,3 +76,19 @@ export async function setTenantLogo(tenantId: string, input: z.infer<typeof logo
     await getStorageProvider().delete(tenant.logoPath, { access: "public" });
   }
 }
+
+/** Remove a logo (botão "Remover" do TenantLogoUpload) — apaga o arquivo do storage e os campos no Firestore. */
+export async function removeTenantLogo(tenantId: string): Promise<void> {
+  const { tenant } = await assertTenantOwner(tenantId);
+
+  await adminDb
+    .collection("tenants")
+    .doc(tenant.id)
+    .update({ logoUrl: FieldValue.delete(), logoPath: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() });
+
+  updateTag(`tenant:${tenant.id}`);
+
+  if (tenant.logoPath) {
+    await getStorageProvider().delete(tenant.logoPath, { access: "public" });
+  }
+}
