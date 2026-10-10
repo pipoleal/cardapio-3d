@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Model3DCard } from "@/components/painel/Model3DCard";
+import { ProductCoverCard } from "@/components/painel/ProductCoverCard";
 import { ProductForm } from "@/components/painel/ProductForm";
 import { TranslationsCard } from "@/components/painel/TranslationsCard";
 import { isFeatureEnabled } from "@/config/features";
@@ -51,6 +52,7 @@ export default async function EditProductPage(
       />
 
       <div className="flex flex-col gap-6">
+        <ProductCoverCard tenantId={tenant.id} productId={product.id} coverUrl={product.coverImage?.url} />
         {isFeatureEnabled(tenant, "modelos3D") && (
           <Model3DCard
             tenantId={tenant.id}

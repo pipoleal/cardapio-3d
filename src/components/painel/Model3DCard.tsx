@@ -1,9 +1,8 @@
 import type { Product } from "@/lib/schemas/product";
 import { Model3DStatus } from "./Model3DStatus";
-import { ProductCoverUpload } from "./ProductCoverUpload";
 
-// Foto de capa (usada como fallback no cardápio enquanto não há modelo 3D,
-// e sempre como thumbnail) + status ao vivo do pipeline 3D (Model3DStatus).
+// Status ao vivo do pipeline 3D — a foto de capa saiu daqui pro
+// ProductCoverCard, que é sempre visível (independe das flags de 3D/IA).
 export function Model3DCard({
   tenantId,
   tenantSlug,
@@ -27,9 +26,6 @@ export function Model3DCard({
         isSuperadmin={isSuperadmin}
         fotosIAEnabled={fotosIAEnabled}
       />
-
-      <ProductCoverUpload tenantId={tenantId} productId={product.id} coverUrl={product.coverImage?.url} />
-      <p className="text-xs text-muted">Foto de capa — usada como miniatura e enquanto não há modelo 3D.</p>
     </div>
   );
 }

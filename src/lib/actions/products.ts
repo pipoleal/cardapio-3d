@@ -173,6 +173,23 @@ export async function setProductCover(
   }
 }
 
+/** Remove a foto de capa (botão "Remover" do ProductCoverCard) — apaga o arquivo do storage e o campo no Firestore. */
+export async function removeProductCover(tenantId: string, productId: string): Promise<void> {
+  const { tenant } = await assertTenantOwner(tenantId);
+
+  const productRef = adminDb.collection("tenants").doc(tenant.id).collection("products").doc(productId);
+  const previousSnap = await productRef.get();
+  const previousPath = (previousSnap.data()?.coverImage as { path?: string } | undefined)?.path;
+
+  await productRef.update({ coverImage: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() });
+
+  updateTag(`tenant:${tenant.id}`);
+
+  if (previousPath) {
+    await getStorageProvider().delete(previousPath, { access: "public" });
+  }
+}
+
 const modelUploadInputSchema = z.object({
   glbUrl: mediaUrlSchema,
   glbPath: z.string().min(1),
