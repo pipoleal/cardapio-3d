@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -11,11 +11,14 @@ import { ALLERGENS, ALLERGEN_LABELS } from "@/lib/allergens";
 import {
   createProduct,
   deleteProduct,
+  setProductCover,
   setProductFresh,
   updateProduct,
   type ProductInput,
 } from "@/lib/actions/products";
+import { compressImage } from "@/lib/image-compress";
 import type { Allergen } from "@/lib/schemas/common";
+import { uploadFile } from "@/lib/storage/upload-client";
 import { buildTenantOrigin } from "@/lib/tenant-host";
 
 type CategoryOption = { id: string; name: string };
@@ -52,6 +55,27 @@ export function ProductForm({
   // DOM (desabilita o botão) depois do próximo render, e um clique duplo
   // rápido o bastante disparava `createProduct` duas vezes antes disso.
   const submittingRef = useRef(false);
+  // Foto escolhida ANTES do produto existir (fluxo de criação): só fica
+  // guardada em memória (preview local) — o upload de verdade só acontece
+  // depois que createProduct devolve o id, dentro do próprio handleSubmit.
+  const [stagedCoverFile, setStagedCoverFile] = useState<File | null>(null);
+  const [stagedCoverPreview, setStagedCoverPreview] = useState<string | null>(null);
+  const stagedCoverInputRef = useRef<HTMLInputElement>(null);
+
+  function handleStagedCoverFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (stagedCoverPreview) URL.revokeObjectURL(stagedCoverPreview);
+    setStagedCoverFile(file);
+    setStagedCoverPreview(URL.createObjectURL(file));
+  }
+
+  function handleRemoveStagedCover() {
+    if (stagedCoverPreview) URL.revokeObjectURL(stagedCoverPreview);
+    setStagedCoverFile(null);
+    setStagedCoverPreview(null);
+  }
 
   async function handleFreshToggle(checked: boolean) {
     if (!values.id) return;
@@ -105,7 +129,20 @@ export function ProductForm({
         await updateProduct(tenantId, values.id, input);
         showSuccess("Produto salvo.");
       } else {
-        await createProduct(tenantId, input);
+        const newId = await createProduct(tenantId, input);
+        if (stagedCoverFile) {
+          try {
+            const { blob, width, height } = await compressImage(stagedCoverFile);
+            const path = `tenants/${tenantId}/products/${newId}/cover.webp`;
+            const { url, path: savedPath } = await uploadFile(path, blob, {
+              contentType: "image/webp",
+              access: "public",
+            });
+            await setProductCover(tenantId, newId, { url, path: savedPath, w: width, h: height });
+          } catch {
+            showError("Produto criado, mas não foi possível enviar a foto. Adicione depois na edição.");
+          }
+        }
         showSuccess("Produto criado.");
       }
       router.push(`/painel/${tenantSlug}/produtos`);
@@ -160,6 +197,42 @@ export function ProductForm({
           </Button>
         </div>
       </div>
+
+      {isNew && (
+        <Card className="flex flex-col gap-3 p-5">
+          <h2 className="font-heading text-lg font-semibold text-ink">Foto de capa</h2>
+          <button
+            type="button"
+            onClick={() => stagedCoverInputRef.current?.click()}
+            className="flex aspect-square w-full max-w-40 items-center justify-center overflow-hidden rounded-thumb border border-border bg-thumb-1"
+          >
+            {stagedCoverPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element -- preview de upload local, não é conteúdo do cardápio
+              <img src={stagedCoverPreview} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-sm text-muted">Enviar foto</span>
+            )}
+          </button>
+          <input
+            ref={stagedCoverInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleStagedCoverFile}
+          />
+          {stagedCoverPreview && (
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => stagedCoverInputRef.current?.click()}>
+                Trocar foto
+              </Button>
+              <Button type="button" variant="danger" onClick={handleRemoveStagedCover}>
+                Remover
+              </Button>
+            </div>
+          )}
+          <p className="text-xs text-muted">Opcional — enviada junto quando o produto for criado.</p>
+        </Card>
+      )}
 
       <Card className="flex flex-col gap-4 p-5">
         <h2 className="font-heading text-lg font-semibold text-ink">Informações</h2>
