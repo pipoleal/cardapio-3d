@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { createCategory, deleteCategory, reorderCategories, updateCategoryName } from "@/lib/actions/categories";
+import { cn } from "@/lib/cn";
+import { prefersReducedMotion } from "@/lib/reduced-motion";
 
 type CategoryItem = { id: string; name: string };
 
@@ -27,6 +29,7 @@ export function CategoryManager({
   const [editingName, setEditingName] = useState("");
   const [pending, setPending] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,12 +66,19 @@ export function CategoryManager({
     if (!confirmDeleteId) return;
     const id = confirmDeleteId;
     setConfirmDeleteId(null);
+    setRemovingId(id);
+    // Deixa a linha encolher antes de chamar a Server Action — sem isso o
+    // item só desaparece depois do router.refresh(), de um jeito abrupto.
+    if (!prefersReducedMotion()) {
+      await new Promise((resolve) => setTimeout(resolve, 180));
+    }
     setPending(true);
     try {
       await deleteCategory(tenantId, id);
       router.refresh();
       showSuccess("Categoria apagada.");
     } catch {
+      setRemovingId(null); // a exclusão falhou — volta a mostrar a linha.
       showError("Não foi possível apagar a categoria.");
     } finally {
       setPending(false);
@@ -99,7 +109,13 @@ export function CategoryManager({
     <div className="flex flex-col gap-4">
       <Card className="flex flex-col divide-y divide-border">
         {categories.map((category, index) => (
-          <div key={category.id} className="flex items-center gap-3 px-5 py-3">
+          <div
+            key={category.id}
+            className={cn(
+              "flex items-center gap-3 overflow-hidden px-5 transition-all duration-200",
+              removingId === category.id ? "max-h-0 py-0 opacity-0" : "max-h-20 py-3 opacity-100",
+            )}
+          >
             <div className="flex flex-col text-xs leading-none">
               <button
                 type="button"
