@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { setProductFresh } from "@/lib/actions/products";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
 
 export function MarkFreshForm({
   tenantId,
@@ -13,6 +14,7 @@ export function MarkFreshForm({
   products: { id: string; name: string }[];
 }) {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
 
@@ -23,6 +25,9 @@ export function MarkFreshForm({
     try {
       await setProductFresh(tenantId, productId, true);
       router.refresh();
+      showSuccess("Marcado como 'saiu do forno'.");
+    } catch {
+      showError("Não foi possível marcar 'saiu do forno'.");
     } finally {
       setLoading(false);
     }
@@ -44,7 +49,7 @@ export function MarkFreshForm({
           </option>
         ))}
       </select>
-      <Button type="submit" disabled={loading}>
+      <Button type="submit" loading={loading}>
         Marcar &quot;saiu do forno&quot;
       </Button>
     </form>

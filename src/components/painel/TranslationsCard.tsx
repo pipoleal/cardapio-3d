@@ -123,10 +123,10 @@ export function TranslationsCard({
 
       {locale !== "pt" && (
         <div className="flex gap-2">
-          <Button type="button" disabled={pending || status !== "auto"} onClick={() => handleApprove(locale)}>
+          <Button type="button" disabled={status !== "auto"} loading={pending} onClick={() => handleApprove(locale)}>
             Aprovar tradução
           </Button>
-          <Button type="button" variant="outline" disabled={pending} onClick={() => handleTranslate(locale)}>
+          <Button type="button" variant="outline" loading={pending} onClick={() => handleTranslate(locale)}>
             Traduzir de novo
           </Button>
         </div>

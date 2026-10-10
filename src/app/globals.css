@@ -53,3 +53,17 @@ body {
     transform: translateY(0);
   }
 }
+
+/* CLAUDE.md regra 10 (acessibilidade): quem pede menos movimento não vê
+   nenhuma animação rodando — toast, spinner do Button, saída de item de
+   lista — só a mudança de estado final, sem transição/loop. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

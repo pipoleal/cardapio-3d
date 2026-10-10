@@ -123,7 +123,9 @@ async function run() {
     // pelo link da lista pra seguir testando a página de edição.
     await page.waitForURL(`${BASE_URL}/painel/${TENANT_SLUG}/produtos`, { timeout: 10000 });
     check(page.url() === `${BASE_URL}/painel/${TENANT_SLUG}/produtos`, "produto criado, volta pra lista");
-    await page.getByRole("link", { name: /Produto E2E/ }).click();
+    // .last(): reexecuções sem reseed acumulam "Produto E2E" de rodadas
+    // anteriores na mesma categoria — o criado agora é sempre o último.
+    await page.getByRole("link", { name: /Produto E2E/ }).last().click();
     await page.waitForURL(/\/produtos\/[^/]+$/, { timeout: 10000 });
     check((await page.getByRole("heading", { name: "Produto E2E" }).count()) === 1, "página de edição mostra o nome salvo");
 

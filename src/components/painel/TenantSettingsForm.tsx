@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { useToast } from "@/components/ui/Toast";
 import { updateTenantSettings, type TenantSettingsInput } from "@/lib/actions/tenant";
 import type { Locale, WhatsappMode } from "@/lib/schemas/common";
 
@@ -21,6 +22,7 @@ export function TenantSettingsForm({
   initial: TenantSettingsInput;
 }) {
   const router = useRouter();
+  const { showError } = useToast();
   const [values, setValues] = useState<TenantSettingsInput>(initial);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -42,6 +44,8 @@ export function TenantSettingsForm({
       await updateTenantSettings(tenantId, values);
       setSavedAt(Date.now());
       router.refresh();
+    } catch {
+      showError("Não foi possível salvar as configurações.");
     } finally {
       setSaving(false);
     }
@@ -136,7 +140,7 @@ export function TenantSettingsForm({
       </Card>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" loading={saving}>
           Salvar
         </Button>
         {savedAt && <span className="text-sm text-success">Salvo!</span>}

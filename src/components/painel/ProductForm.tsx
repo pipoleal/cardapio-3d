@@ -153,7 +153,7 @@ export function ProductForm({
               Ver no cardápio
             </a>
           )}
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" loading={saving}>
             {isNew ? "Criar produto" : "Salvar e publicar"}
           </Button>
         </div>

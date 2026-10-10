@@ -60,7 +60,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
 
   return (
     <div className="flex w-full max-w-sm flex-col gap-4">
-      <Button type="button" variant="outline" onClick={handleGoogleSignIn} disabled={loading}>
+      <Button type="button" variant="outline" onClick={handleGoogleSignIn} loading={loading}>
         Entrar com Google
       </Button>
 
@@ -92,7 +92,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
         {/* --color-rec (vermelho de gravação) é o único tom "de alerta forte" do
             design system — reaproveitado aqui por falta de um token dedicado a erro. */}
         {error && <p className="text-sm text-rec">{error}</p>}
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" loading={loading}>
           Entrar
         </Button>
       </form>

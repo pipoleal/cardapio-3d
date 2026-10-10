@@ -159,7 +159,7 @@ export function CategoryManager({
           placeholder="Nova categoria"
           className="min-h-11 flex-1 rounded-input border border-border bg-surface px-3 text-sm text-ink"
         />
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" loading={pending}>
           Adicionar
         </Button>
       </form>
