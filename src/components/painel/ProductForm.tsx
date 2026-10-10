@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Toggle } from "@/components/ui/Toggle";
 import { useToast } from "@/components/ui/Toast";
 import { ALLERGENS, ALLERGEN_LABELS } from "@/lib/allergens";
@@ -46,6 +47,7 @@ export function ProductForm({
   const [error, setError] = useState<string | null>(null);
   const [fresh, setFresh] = useState(freshInitially);
   const [freshPending, setFreshPending] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   // Guarda síncrona contra duplo clique/duplo Enter: `saving` só reflete no
   // DOM (desabilita o botão) depois do próximo render, e um clique duplo
   // rápido o bastante disparava `createProduct` duas vezes antes disso.
@@ -118,7 +120,7 @@ export function ProductForm({
 
   async function handleDelete() {
     if (!values.id) return;
-    if (!confirm("Apagar este produto? Essa ação não pode ser desfeita.")) return;
+    setConfirmDeleteOpen(false);
     setSaving(true);
     try {
       await deleteProduct(tenantId, values.id);
@@ -273,13 +275,24 @@ export function ProductForm({
         {!isNew && (
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setConfirmDeleteOpen(true)}
             className="self-start text-sm text-rec hover:underline"
           >
             Apagar produto
           </button>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Apagar produto?"
+        description="Essa ação não pode ser desfeita."
+        confirmLabel="Apagar"
+        danger
+        pending={saving}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
     </form>
   );
 }

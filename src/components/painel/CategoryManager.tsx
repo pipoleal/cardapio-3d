@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { createCategory, deleteCategory, reorderCategories, updateCategoryName } from "@/lib/actions/categories";
 
@@ -25,6 +26,7 @@ export function CategoryManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [pending, setPending] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,8 +59,10 @@ export function CategoryManager({
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Apagar esta categoria? Os produtos dela não são apagados.")) return;
+  async function handleDelete() {
+    if (!confirmDeleteId) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     setPending(true);
     try {
       await deleteCategory(tenantId, id);
@@ -142,7 +146,7 @@ export function CategoryManager({
             <button
               type="button"
               disabled={pending}
-              onClick={() => handleDelete(category.id)}
+              onClick={() => setConfirmDeleteId(category.id)}
               className="text-sm text-rec hover:underline"
             >
               Apagar
@@ -163,6 +167,17 @@ export function CategoryManager({
           Adicionar
         </Button>
       </form>
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Apagar categoria?"
+        description="Os produtos dela não são apagados."
+        confirmLabel="Apagar"
+        danger
+        pending={pending}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }
