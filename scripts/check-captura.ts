@@ -86,7 +86,11 @@ async function run() {
   await page.getByLabel("Nome").fill(productName);
   await page.getByLabel("Preço (R$)").fill("30.00");
   await page.getByRole("button", { name: "Criar produto" }).click();
-  await page.waitForURL(/\/produtos\/(?!novo$)[^/]+$/, { timeout: 10000 });
+  // Criar produto agora volta pra lista (não pra edição) — entra de novo
+  // pelo link da lista pra extrair o id da URL de edição.
+  await page.waitForURL(`${BASE_URL}/painel/${TENANT_SLUG}/produtos`, { timeout: 10000 });
+  await page.getByRole("link", { name: productName }).click();
+  await page.waitForURL(/\/produtos\/[^/]+$/, { timeout: 10000 });
   const productId = page.url().split("/produtos/")[1];
   check(!!productId, `produto criado, id extraído da URL (achado: ${productId})`);
 

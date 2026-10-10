@@ -119,12 +119,12 @@ async function run() {
     // primeira é a seção Alergênicos.
     await page.getByRole("checkbox", { name: "Glúten" }).first().check();
     await page.getByRole("button", { name: "Criar produto" }).click();
-    // (?!novo$): /produtos/novo (a própria página atual) também bate com
-    // /produtos/[^/]+$ — precisa excluir explicitamente, senão o wait
-    // resolve na hora, antes do redirect de verdade acontecer.
-    await page.waitForURL(/\/produtos\/(?!novo$)[^/]+$/, { timeout: 10000 });
-    const productUrl = page.url();
-    check(/\/produtos\/(?!novo$)[^/]+$/.test(productUrl), `produto criado, URL vira a de edição (achado: ${productUrl})`);
+    // Criar produto agora volta pra lista (não pra edição) — entra de novo
+    // pelo link da lista pra seguir testando a página de edição.
+    await page.waitForURL(`${BASE_URL}/painel/${TENANT_SLUG}/produtos`, { timeout: 10000 });
+    check(page.url() === `${BASE_URL}/painel/${TENANT_SLUG}/produtos`, "produto criado, volta pra lista");
+    await page.getByRole("link", { name: /Produto E2E/ }).click();
+    await page.waitForURL(/\/produtos\/[^/]+$/, { timeout: 10000 });
     check((await page.getByRole("heading", { name: "Produto E2E" }).count()) === 1, "página de edição mostra o nome salvo");
 
     // upload de capa (arquivo PNG mínimo gerado em memória)

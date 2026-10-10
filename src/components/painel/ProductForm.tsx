@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
@@ -46,6 +46,10 @@ export function ProductForm({
   const [error, setError] = useState<string | null>(null);
   const [fresh, setFresh] = useState(freshInitially);
   const [freshPending, setFreshPending] = useState(false);
+  // Guarda síncrona contra duplo clique/duplo Enter: `saving` só reflete no
+  // DOM (desabilita o botão) depois do próximo render, e um clique duplo
+  // rápido o bastante disparava `createProduct` duas vezes antes disso.
+  const submittingRef = useRef(false);
 
   async function handleFreshToggle(checked: boolean) {
     if (!values.id) return;
@@ -78,6 +82,8 @@ export function ProductForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -95,18 +101,18 @@ export function ProductForm({
 
       if (values.id) {
         await updateProduct(tenantId, values.id, input);
-        router.refresh();
         showSuccess("Produto salvo.");
       } else {
-        const newId = await createProduct(tenantId, input);
+        await createProduct(tenantId, input);
         showSuccess("Produto criado.");
-        router.push(`/painel/${tenantSlug}/produtos/${newId}`);
       }
+      router.push(`/painel/${tenantSlug}/produtos`);
     } catch {
       setError("Não foi possível salvar. Confira os campos e tente de novo.");
       showError("Não foi possível salvar o produto.");
     } finally {
       setSaving(false);
+      submittingRef.current = false;
     }
   }
 
