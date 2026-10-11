@@ -46,6 +46,13 @@ export function ProductForm({
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   const [values, setValues] = useState<ProductFormValues>(initial);
+  // Texto digitado no campo de preço, separado de `values.priceCents`: usar
+  // `(priceCents / 100).toFixed(2)` direto como `value` reformata o campo a
+  // CADA tecla — o cursor perde a posição e a digitação sai embaralhada
+  // (ex.: tentar digitar "25.90" vira "2.02"). O texto só normaliza pra
+  // "0.00" de novo ao sair do campo (blur); `priceCents` acompanha a cada
+  // tecla, mas só quando o texto já forma um número válido.
+  const [priceText, setPriceText] = useState(() => (initial.priceCents / 100).toFixed(2));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fresh, setFresh] = useState(freshInitially);
@@ -90,6 +97,22 @@ export function ProductForm({
     } finally {
       setFreshPending(false);
     }
+  }
+
+  function handlePriceChange(event: ChangeEvent<HTMLInputElement>) {
+    const raw = event.target.value;
+    setPriceText(raw);
+    // Aceita "," (comum no Brasil) e "." como separador decimal.
+    const parsed = Number(raw.replace(",", "."));
+    if (raw.trim() !== "" && !Number.isNaN(parsed)) {
+      setValues((current) => ({ ...current, priceCents: Math.max(0, Math.round(parsed * 100)) }));
+    }
+  }
+
+  function handlePriceBlur() {
+    // Só agora, ao sair do campo, normaliza de volta pra "0.00" — nunca
+    // enquanto o usuário ainda está digitando (ver comentário no estado).
+    setPriceText((values.priceCents / 100).toFixed(2));
   }
 
   const isNew = !values.id;
@@ -266,17 +289,12 @@ export function ProductForm({
           <label className="flex flex-col gap-1 text-sm">
             Preço (R$)
             <input
-              type="number"
-              min={0}
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               required
-              value={(values.priceCents / 100).toFixed(2)}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  priceCents: Math.round(Number(event.target.value || 0) * 100),
-                }))
-              }
+              value={priceText}
+              onChange={handlePriceChange}
+              onBlur={handlePriceBlur}
               className="min-h-11 rounded-input border border-border bg-surface px-3 text-ink"
             />
           </label>
