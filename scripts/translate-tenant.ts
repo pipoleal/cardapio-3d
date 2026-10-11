@@ -1,19 +1,20 @@
 /**
  * Backfill de tradução EN/ES pra categorias e produtos JÁ EXISTENTES de uma
- * loja — pro fluxo normal (traduzir + aprovar um de cada vez no painel,
- * `src/lib/actions/translate.ts`) não servir quando é preciso uma loja
- * inteira de uma vez antes de um lançamento.
+ * loja — pro fluxo normal (traduzir + aprovar um de cada vez no painel, ou
+ * o botão "Traduzir tudo" da página Traduções, que já faz isso pelos itens
+ * "missing" — `src/lib/actions/translate.ts`) não servir quando é preciso
+ * forçar uma loja inteira de uma vez, ignorando o que já existe.
  *
- * Diferença de propósito do fluxo do painel: aqui a tradução já sai como
- * `i18nStatus.<locale> = "approved"` direto (sem passar por "auto"/revisão
- * manual) — é um backfill de lançamento, não o fluxo do dia a dia. Rodar de
- * novo é seguro: sobrescreve com uma tradução nova, não duplica nada.
+ * Diferença de propósito do fluxo do painel: aqui a tradução sai direto como
+ * `i18nStatus.<locale> = "approved"` (sem passar por "auto"/revisão manual)
+ * — é pra backfill/lançamento, não o fluxo do dia a dia.
  *
- * TODO (pós-lançamento, pedido do Felipe): hoje roda tudo incondicionalmente
- * — se alguém editar EN/ES à mão no painel depois do backfill, rodar o
- * script de novo apaga esse ajuste manual sem avisar. Adicionar um
- * `--only-missing` (ou pular item com `i18nStatus.<locale> === "approved"`
- * já setado) antes de virar rotina.
+ * Por padrão PULA qualquer item que já tenha `i18nStatus.<locale>` setado
+ * (`"auto"` ou `"approved"` — traduzido automaticamente ao salvar, ou
+ * editado/aprovado à mão) — resolve o TODO antigo: rodar de novo não some
+ * mais com ajustes manuais sem avisar. Use `--force` pra ignorar isso e
+ * sobrescrever tudo incondicionalmente (ex.: depois de uma correção em massa
+ * no texto em PT que precisa recomeçar a tradução do zero).
  *
  * "google" (`TRANSLATOR_PROVIDER=google`) usa a Cloud Translation API de
  * verdade, reaproveitando as MESMAS credenciais do Admin SDK
@@ -24,6 +25,7 @@
  * prefixa "[EN] "/"[ES] ", pra testar a lógica sem gastar crédito.
  *
  *   npm run translate-tenant -- boaconfe
+ *   npm run translate-tenant -- boaconfe --force
  */
 import { Translate } from "@google-cloud/translate/build/src/v2";
 import { adminDb } from "../src/lib/firebase/admin-app";
@@ -60,13 +62,19 @@ async function translateFields(
   return Object.fromEntries(keys.map((key, index) => [key, translatedValues[index]!]));
 }
 
-async function translateCategory(tenantId: string, categoryId: string): Promise<void> {
+async function translateCategory(tenantId: string, categoryId: string, force: boolean): Promise<void> {
   const ref = adminDb.collection("tenants").doc(tenantId).collection("categories").doc(categoryId);
-  const data = (await ref.get()).data() as { name?: { pt?: string } } | undefined;
+  const data = (await ref.get()).data() as
+    | { name?: { pt?: string }; i18nStatus?: Record<string, string> }
+    | undefined;
   const namePt = data?.name?.pt;
   if (!namePt) return;
 
   for (const target of TARGETS) {
+    if (!force && data?.i18nStatus?.[target]) {
+      console.log(`  categoria ${categoryId}: ${target} já tem tradução (${data.i18nStatus[target]}), pulando`);
+      continue;
+    }
     const translated = await translateFields({ name: namePt }, target);
     await ref.update({ [`name.${target}`]: translated.name, [`i18nStatus.${target}`]: "approved" });
     console.log(`  categoria ${categoryId}: ${target} ok`);
@@ -75,16 +83,25 @@ async function translateCategory(tenantId: string, categoryId: string): Promise<
 
 type RawVariant = { id: string; name: { pt: string; en?: string; es?: string }; priceCents: number };
 
-async function translateProduct(tenantId: string, productId: string): Promise<void> {
+async function translateProduct(tenantId: string, productId: string, force: boolean): Promise<void> {
   const ref = adminDb.collection("tenants").doc(tenantId).collection("products").doc(productId);
   const data = (await ref.get()).data() as
-    | { name?: { pt?: string }; description?: { pt?: string }; variants?: RawVariant[] }
+    | {
+        name?: { pt?: string };
+        description?: { pt?: string };
+        variants?: RawVariant[];
+        i18nStatus?: Record<string, string>;
+      }
     | undefined;
   const namePt = data?.name?.pt;
   if (!namePt) return;
   const variants = data?.variants ?? [];
 
   for (const target of TARGETS) {
+    if (!force && data?.i18nStatus?.[target]) {
+      console.log(`  produto ${productId}: ${target} já tem tradução (${data.i18nStatus[target]}), pulando`);
+      continue;
+    }
     const fields: Record<string, string> = { name: namePt };
     if (data?.description?.pt) fields.description = data.description.pt;
     for (const variant of variants) fields[`variant:${variant.id}`] = variant.name.pt;
@@ -110,23 +127,25 @@ async function translateProduct(tenantId: string, productId: string): Promise<vo
 
 async function run(): Promise<void> {
   const tenantId = process.argv[2];
+  const force = process.argv.includes("--force");
   if (!tenantId) {
-    console.error("uso: npm run translate-tenant -- <tenantId>");
+    console.error("uso: npm run translate-tenant -- <tenantId> [--force]");
     process.exit(1);
   }
 
   console.log(`Provider: ${process.env.TRANSLATOR_PROVIDER === "google" ? "google (de verdade)" : "fake (teste)"}`);
+  console.log(force ? "Modo: --force (sobrescreve tudo, até tradução já aprovada/editada à mão)" : "Modo: pula o que já tem tradução (use --force pra sobrescrever)");
 
   const categoriesSnap = await adminDb.collection("tenants").doc(tenantId).collection("categories").get();
   console.log(`Traduzindo ${categoriesSnap.size} categorias...`);
   for (const doc of categoriesSnap.docs) {
-    await translateCategory(tenantId, doc.id);
+    await translateCategory(tenantId, doc.id, force);
   }
 
   const productsSnap = await adminDb.collection("tenants").doc(tenantId).collection("products").get();
   console.log(`Traduzindo ${productsSnap.size} produtos...`);
   for (const doc of productsSnap.docs) {
-    await translateProduct(tenantId, doc.id);
+    await translateProduct(tenantId, doc.id, force);
   }
 
   console.log("OK: tradução concluída (EN/ES, já aprovada).");
