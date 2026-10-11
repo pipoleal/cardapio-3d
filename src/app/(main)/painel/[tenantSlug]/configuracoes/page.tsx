@@ -21,6 +21,10 @@ export default async function ConfiguracoesPage(
       <TenantLogoUpload tenantId={tenant.id} logoUrl={tenant.logoUrl} />
 
       <TenantSettingsForm
+        // Mesmo motivo do key em ProductForm (ver docs/DECISOES.md):
+        // revisitar /configuracoes sem isso podia reaproveitar o
+        // formulário com valores de ANTES do último save.
+        key={tenant.updatedAt.getTime()}
         tenantId={tenant.id}
         initial={{
           name: tenant.name,

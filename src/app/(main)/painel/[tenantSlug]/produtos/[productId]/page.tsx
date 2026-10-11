@@ -29,6 +29,14 @@ export default async function EditProductPage(
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
       <ProductForm
+        // O Next.js 16 pode preservar o estado do ProductForm entre
+        // navegações pra essa MESMA URL (ex.: editar, sair, voltar a
+        // editar o mesmo produto) — sem isso, o formulário reaparecia com
+        // os valores digitados ANTES de sair, e salvar de novo sobrescrevia
+        // a edição real com esse valor velho, silenciosamente. A key muda
+        // a cada vez que o produto é salvo (updatedAt), forçando remount
+        // com os dados frescos do servidor. Ver docs/DECISOES.md.
+        key={`${product.id}-${product.updatedAt.getTime()}`}
         tenantId={tenant.id}
         tenantSlug={tenant.slug}
         categories={categories.map((item) => ({

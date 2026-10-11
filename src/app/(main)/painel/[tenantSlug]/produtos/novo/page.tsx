@@ -26,6 +26,13 @@ export default async function NewProductPage(
 
   return (
     <ProductForm
+      // Mesmo motivo do key em produtos/[productId]/page.tsx: sem isso,
+      // revisitar /produtos/novo reaproveitava a instância anterior do
+      // formulário com os dados do último produto criado ainda dentro
+      // (ver docs/DECISOES.md). randomUUID() garante um valor novo a cada
+      // vez que este Server Component roda (a rota é sempre dinâmica);
+      // Date.now() aqui é barrado pelo lint (react-hooks/purity).
+      key={crypto.randomUUID()}
       tenantId={tenant.id}
       tenantSlug={tenant.slug}
       categories={categories.map((item) => ({
