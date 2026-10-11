@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Card } from "@/components/ui/Card";
+import { TranslateAllButton } from "@/components/painel/TranslateAllButton";
 import { TranslateStatusRow } from "@/components/painel/TranslateStatusRow";
 import { requireTenantOwner } from "@/lib/auth/session";
 import { resolveLocalizedText } from "@/lib/localized-text";
@@ -17,7 +18,10 @@ export default async function TraducoesPage(
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-ink">Traduções</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-heading text-2xl font-semibold text-ink">Traduções</h1>
+        <TranslateAllButton tenantId={tenant.id} />
+      </div>
 
       <section>
         <h2 className="mb-2 text-sm font-semibold tracking-wide text-muted uppercase">Loja</h2>
