@@ -10,10 +10,13 @@ type LocalizedText = { pt: string; en?: string; es?: string };
 type Allergen =
   | "gluten" | "lactose" | "milk" | "egg" | "peanut" | "tree_nuts"
   | "soy" | "sesame" | "fish" | "shellfish" | "sulfites";
-// Aprovação de tradução por ENTIDADE (tenant, categoria, produto), não por
-// campo: um único i18nStatus[locale] === "approved" libera TODOS os
-// LocalizedText daquela entidade pro cliente de uma vez (ver "Traduções" no
-// fim deste arquivo).
+// Status de tradução por ENTIDADE (tenant, categoria, produto), não por
+// campo: um único i18nStatus[locale] libera TODOS os LocalizedText daquela
+// entidade pro cliente de uma vez (ver "Traduções" no fim deste arquivo).
+// "missing" (ou ausente): nunca traduzido, cai pro pt. "auto": traduzido
+// automaticamente ao salvar, JÁ visível pro cliente, ainda não revisado.
+// "approved": revisado ("Aprovar tradução") ou editado à mão — protegido
+// contra sobrescrita automática até o texto em pt mudar de novo.
 type I18nStatus = { en?: "missing" | "auto" | "approved"; es?: "missing" | "auto" | "approved" };
 ```
 
@@ -136,12 +139,28 @@ Reserva única de subdomínio.
 - `products`: `categoryId ASC, order ASC`; `available ASC, order ASC`.
 - `modelJobs`: `status ASC, createdAt DESC`.
 
-> **Traduções:** o cardápio público mostra en/es só quando `i18nStatus[locale] === "approved"`; senão cai para `pt`.
-> `i18nStatus` existe em três lugares — `tenants/{tenantId}`, `tenants/{tenantId}/categories/{categoryId}` e
-> `tenants/{tenantId}/products/{productId}` — e é sempre **por entidade, não por campo**: aprovar o `en` de
-> um produto libera nome, descrição e nome das variações juntos; aprovar o `en` do tenant libera descrição,
-> horário de funcionamento e template do WhatsApp juntos. Não existe aprovação parcial (ex.: nome aprovado
-> mas descrição não) — simplifica o "Aprovar tradução" do mockup 05 (Etapa 3) pra um botão só por entidade.
+> **Traduções:** o cardápio público mostra en/es quando `i18nStatus[locale]` é `"auto"` **ou** `"approved"`;
+> só cai para `pt` quando o campo está `"missing"`/ausente (nunca traduzido). `i18nStatus` existe em três
+> lugares — `tenants/{tenantId}`, `tenants/{tenantId}/categories/{categoryId}` e
+> `tenants/{tenantId}/products/{productId}` — e é sempre **por entidade, não por campo**: traduzir/aprovar o
+> `en` de um produto libera nome, descrição e nome das variações juntos; do tenant libera descrição, horário
+> de funcionamento e template do WhatsApp juntos. Não existe aprovação parcial (ex.: nome aprovado mas
+> descrição não) — um botão só por entidade.
+>
+> **Tradução automática ao salvar:** criar/editar produto, categoria ou configurações da loja (`lib/actions/
+> products.ts`, `categories.ts`, `tenant.ts`) traduz sozinho pros idiomas ativos da loja (`tenant.locales`),
+> gravando como `"auto"` — o cliente já vê o resultado sem o lojista precisar clicar em nada. Só roda quando
+> o texto em PT realmente mudou (`lib/actions/translate-helpers.ts`, `textFieldsChanged`); se o PT não mudou,
+> a tradução existente (automática ou `"approved"`) fica intocada — preserva revisão/edição manual. Se o PT
+> mudar de novo depois de uma tradução `"approved"`, a próxima tradução automática SOBRESCREVE — o status
+> volta pra `"auto"` e pede revisão de novo (o PT mudou, a tradução velha não bate mais). A tradução roda
+> *dentro* da própria Server Action (não em segundo plano): se falhar, o save continua valendo (nunca perde o
+> produto/categoria/configuração), e o painel mostra um toast de aviso.
+>
+> **"Traduzir tudo"** (botão na página Traduções do painel, `lib/actions/translate.ts`, `translateAllMissing`)
+> traduz de uma vez só os itens `"missing"` (nunca traduzidos) — nunca mexe em `"auto"` nem `"approved"`.
+> Serve pra pegar o que ficou pra trás (item cadastrado antes de ligar um idioma novo, por exemplo), sem
+> reaproveitar o fluxo de criar/editar um por um.
 
 ## Storage (`StorageProvider`, `lib/storage/` — Firebase em dev, Vercel Blob em produção/staging)
 
