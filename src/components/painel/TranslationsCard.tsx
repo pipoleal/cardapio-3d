@@ -95,7 +95,7 @@ export function TranslationsCard({
           {status === "approved"
             ? "Aprovado"
             : status === "auto"
-              ? "Traduzido automaticamente · revise antes de aprovar"
+              ? "Traduzido automaticamente · já aparece pro cliente, mas vale revisar"
               : "Ainda não traduzido"}
         </p>
       )}

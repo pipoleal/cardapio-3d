@@ -149,10 +149,13 @@ export function ProductForm({
       };
 
       if (values.id) {
-        await updateProduct(tenantId, values.id, input);
+        const result = await updateProduct(tenantId, values.id, input);
         showSuccess("Produto salvo.");
+        if (result.translationFailed) {
+          showError("Produto salvo, mas a tradução falhou. Tente de novo na página de Traduções.");
+        }
       } else {
-        const newId = await createProduct(tenantId, input);
+        const { id: newId, translationFailed } = await createProduct(tenantId, input);
         if (stagedCoverFile) {
           try {
             const { blob, width, height } = await compressImage(stagedCoverFile);
@@ -167,6 +170,9 @@ export function ProductForm({
           }
         }
         showSuccess("Produto criado.");
+        if (translationFailed) {
+          showError("Produto criado, mas a tradução falhou. Tente de novo na página de Traduções.");
+        }
       }
       router.push(`/painel/${tenantSlug}/produtos`);
     } catch {

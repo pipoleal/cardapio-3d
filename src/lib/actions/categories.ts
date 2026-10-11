@@ -4,6 +4,8 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { assertTenantOwner } from "./guard";
+import { autoTranslateEntity } from "./translate";
+import { textFieldsChanged } from "./translate-helpers";
 
 const nameInputSchema = z.string().min(1).max(60);
 
@@ -19,7 +21,10 @@ async function nextCategoryOrder(tenantId: string): Promise<number> {
   return (last?.order ?? -1) + 1;
 }
 
-export async function createCategory(tenantId: string, name: string): Promise<string> {
+export async function createCategory(
+  tenantId: string,
+  name: string,
+): Promise<{ id: string; translationFailed: boolean }> {
   const { tenant } = await assertTenantOwner(tenantId);
   const parsedName = nameInputSchema.parse(name);
 
@@ -31,21 +36,32 @@ export async function createCategory(tenantId: string, name: string): Promise<st
   });
 
   updateTag(`tenant:${tenant.id}`);
-  return ref.id;
+
+  const result = await autoTranslateEntity(tenant, "category", ref.id);
+  return { id: ref.id, translationFailed: result.attempted && !result.ok };
 }
 
-export async function updateCategoryName(tenantId: string, categoryId: string, name: string): Promise<void> {
+export async function updateCategoryName(
+  tenantId: string,
+  categoryId: string,
+  name: string,
+): Promise<{ translationFailed: boolean }> {
   const { tenant } = await assertTenantOwner(tenantId);
   const parsedName = nameInputSchema.parse(name);
 
-  await adminDb
-    .collection("tenants")
-    .doc(tenant.id)
-    .collection("categories")
-    .doc(categoryId)
-    .update({ "name.pt": parsedName });
+  const ref = adminDb.collection("tenants").doc(tenant.id).collection("categories").doc(categoryId);
+  const previousSnap = await ref.get();
+  const previousName = (previousSnap.data() as { name?: { pt?: string } } | undefined)?.name?.pt;
 
+  await ref.update({ "name.pt": parsedName });
   updateTag(`tenant:${tenant.id}`);
+
+  if (!textFieldsChanged({ name: previousName }, { name: parsedName })) {
+    return { translationFailed: false };
+  }
+
+  const result = await autoTranslateEntity(tenant, "category", categoryId);
+  return { translationFailed: result.attempted && !result.ok };
 }
 
 export async function deleteCategory(tenantId: string, categoryId: string): Promise<void> {

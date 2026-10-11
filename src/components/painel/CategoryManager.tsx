@@ -36,10 +36,11 @@ export function CategoryManager({
     if (!newName.trim()) return;
     setPending(true);
     try {
-      await createCategory(tenantId, newName.trim());
+      const result = await createCategory(tenantId, newName.trim());
       setNewName("");
       router.refresh();
       showSuccess("Categoria criada.");
+      if (result.translationFailed) showError("Categoria criada, mas a tradução falhou.");
     } catch {
       showError("Não foi possível criar a categoria.");
     } finally {
@@ -52,9 +53,10 @@ export function CategoryManager({
     if (!editingName.trim()) return;
     setPending(true);
     try {
-      await updateCategoryName(tenantId, id, editingName.trim());
+      const result = await updateCategoryName(tenantId, id, editingName.trim());
       router.refresh();
       showSuccess("Categoria salva.");
+      if (result.translationFailed) showError("Categoria salva, mas a tradução falhou.");
     } catch {
       showError("Não foi possível renomear a categoria.");
     } finally {

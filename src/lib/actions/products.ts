@@ -9,6 +9,8 @@ import { allergenSchema, mediaUrlSchema } from "@/lib/schemas/common";
 import { getStorageProvider } from "@/lib/storage";
 import { deleteOldModelFiles } from "@/lib/three-d/jobs";
 import { ActionError, assertTenantOwner } from "./guard";
+import { autoTranslateEntity } from "./translate";
+import { textFieldsChanged } from "./translate-helpers";
 
 // Espelha os campos do mockup 05 (Informações): nome, categoria, preço,
 // descrição, alergênicos, "pode conter", e os 3 interruptores. Variações
@@ -40,7 +42,10 @@ async function nextProductOrder(tenantId: string): Promise<number> {
   return (last?.order ?? -1) + 1;
 }
 
-export async function createProduct(tenantId: string, input: ProductInput): Promise<string> {
+export async function createProduct(
+  tenantId: string,
+  input: ProductInput,
+): Promise<{ id: string; translationFailed: boolean }> {
   const { tenant } = await assertTenantOwner(tenantId);
   const parsed = productInputSchema.parse(input);
 
@@ -63,7 +68,11 @@ export async function createProduct(tenantId: string, input: ProductInput): Prom
   });
 
   updateTag(`tenant:${tenant.id}`);
-  return ref.id;
+
+  // Produto novo: não tem PT "anterior" pra comparar, sempre traduz (se a
+  // loja tiver algum idioma além do pt ativo).
+  const result = await autoTranslateEntity(tenant, "product", ref.id);
+  return { id: ref.id, translationFailed: result.attempted && !result.ok };
 }
 
 /**
@@ -75,9 +84,13 @@ export async function updateProduct(
   tenantId: string,
   productId: string,
   input: ProductInput,
-): Promise<void> {
+): Promise<{ translationFailed: boolean }> {
   const { tenant } = await assertTenantOwner(tenantId);
   const parsed = productInputSchema.parse(input);
+
+  const productRef = adminDb.collection("tenants").doc(tenant.id).collection("products").doc(productId);
+  const previousSnap = await productRef.get();
+  const previous = previousSnap.data() as { name?: { pt?: string }; description?: { pt?: string } } | undefined;
 
   // "description.pt" (dot-path) quando existe, pra não apagar
   // description.en/es junto — mas se o pt for limpo, precisa apagar o
@@ -88,25 +101,31 @@ export async function updateProduct(
     ? { "description.pt": parsed.description }
     : { description: FieldValue.delete() };
 
-  await adminDb
-    .collection("tenants")
-    .doc(tenant.id)
-    .collection("products")
-    .doc(productId)
-    .update({
-      categoryId: parsed.categoryId,
-      "name.pt": parsed.name,
-      ...descriptionUpdate,
-      priceCents: parsed.priceCents,
-      servings: parsed.servings ?? FieldValue.delete(),
-      allergens: parsed.allergens,
-      mayContain: parsed.mayContain ?? FieldValue.delete(),
-      available: parsed.available,
-      acceptsOrders: parsed.acceptsOrders,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+  await productRef.update({
+    categoryId: parsed.categoryId,
+    "name.pt": parsed.name,
+    ...descriptionUpdate,
+    priceCents: parsed.priceCents,
+    servings: parsed.servings ?? FieldValue.delete(),
+    allergens: parsed.allergens,
+    mayContain: parsed.mayContain ?? FieldValue.delete(),
+    available: parsed.available,
+    acceptsOrders: parsed.acceptsOrders,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 
   updateTag(`tenant:${tenant.id}`);
+
+  // Só re-traduz se o nome ou a descrição em PT realmente mudaram — senão
+  // fica quieto e preserva a tradução (automática ou aprovada) que já tem.
+  const textChanged = textFieldsChanged(
+    { name: previous?.name?.pt, description: previous?.description?.pt },
+    { name: parsed.name, description: parsed.description },
+  );
+  if (!textChanged) return { translationFailed: false };
+
+  const result = await autoTranslateEntity(tenant, "product", productId);
+  return { translationFailed: result.attempted && !result.ok };
 }
 
 export async function deleteProduct(tenantId: string, productId: string): Promise<void> {

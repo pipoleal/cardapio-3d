@@ -4,9 +4,11 @@ import { FieldValue } from "firebase-admin/firestore";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
-import { localeSchema, mediaUrlSchema, whatsappModeSchema } from "@/lib/schemas/common";
+import { localeSchema, mediaUrlSchema, whatsappModeSchema, type Locale } from "@/lib/schemas/common";
 import { getStorageProvider } from "@/lib/storage";
 import { assertTenantOwner } from "./guard";
+import { autoTranslateEntity } from "./translate";
+import { textFieldsChanged } from "./translate-helpers";
 
 // Espelha "Configurações" (mockup, nav do painel): nome, WhatsApp + modo,
 // idiomas ativos, cor. Logo tem a própria action (setTenantLogo) — o
@@ -25,7 +27,10 @@ const settingsInputSchema = z.object({
 
 export type TenantSettingsInput = z.infer<typeof settingsInputSchema>;
 
-export async function updateTenantSettings(tenantId: string, input: TenantSettingsInput): Promise<void> {
+export async function updateTenantSettings(
+  tenantId: string,
+  input: TenantSettingsInput,
+): Promise<{ translationFailed: boolean }> {
   const { tenant } = await assertTenantOwner(tenantId);
   const parsed = settingsInputSchema.parse(input);
 
@@ -36,6 +41,8 @@ export async function updateTenantSettings(tenantId: string, input: TenantSettin
     ? { "whatsappTemplate.pt": parsed.whatsappTemplate }
     : { whatsappTemplate: FieldValue.delete() };
 
+  const newLocales: Locale[] = ["pt", ...parsed.extraLocales];
+
   await adminDb
     .collection("tenants")
     .doc(tenant.id)
@@ -44,12 +51,23 @@ export async function updateTenantSettings(tenantId: string, input: TenantSettin
       whatsapp: parsed.whatsapp,
       whatsappMode: parsed.whatsappMode,
       ...templateUpdate,
-      locales: ["pt", ...parsed.extraLocales],
+      locales: newLocales,
       "theme.primary": parsed.themePrimary,
       updatedAt: FieldValue.serverTimestamp(),
     });
 
   updateTag(`tenant:${tenant.id}`);
+
+  const textChanged = textFieldsChanged(
+    { whatsappTemplate: tenant.whatsappTemplate?.pt },
+    { whatsappTemplate: parsed.whatsappTemplate },
+  );
+  if (!textChanged) return { translationFailed: false };
+
+  // Usa a lista de idiomas NOVA — se o lojista acabou de ligar EN/ES
+  // agora, o template já sai traduzido no mesmo save.
+  const result = await autoTranslateEntity({ id: tenant.id, locales: newLocales }, "tenant", tenant.id);
+  return { translationFailed: result.attempted && !result.ok };
 }
 
 const logoInputSchema = z.object({ url: mediaUrlSchema, path: z.string().min(1) });

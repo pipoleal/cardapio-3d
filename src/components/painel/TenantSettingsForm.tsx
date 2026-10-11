@@ -41,9 +41,10 @@ export function TenantSettingsForm({
     setSaving(true);
     setSavedAt(null);
     try {
-      await updateTenantSettings(tenantId, values);
+      const result = await updateTenantSettings(tenantId, values);
       setSavedAt(Date.now());
       router.refresh();
+      if (result.translationFailed) showError("Configurações salvas, mas a tradução falhou.");
     } catch {
       showError("Não foi possível salvar as configurações.");
     } finally {

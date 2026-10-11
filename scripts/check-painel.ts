@@ -150,9 +150,14 @@ async function run() {
       "toggle 'Saiu do forno' liga e persiste (aria-checked=true)",
     );
 
-    // tradução ("EN" sem exact bate também com "Enviar foto", que começa com "En")
+    // tradução automática ao criar: a demo tem en/es ativos, então o
+    // produto já nasce traduzido (status "auto"), sem precisar clicar em
+    // nada ("EN" sem exact bate também com "Enviar foto", que começa com "En").
     await page.getByRole("button", { name: "EN", exact: true }).click();
-    check((await page.getByText("Ainda não traduzido").count()) === 1, "EN começa 'Ainda não traduzido'");
+    check(
+      (await page.getByText("Traduzido automaticamente").count()) === 1,
+      "EN já começa 'Traduzido automaticamente' (tradução automática ao criar)",
+    );
     await page.getByRole("button", { name: "Traduzir de novo" }).click();
     await page.getByText("Traduzido automaticamente").waitFor({ timeout: 10000 }).catch(() => null);
     check((await page.getByText("Traduzido automaticamente").count()) === 1, "depois de traduzir, status vira 'auto'");
