@@ -12,8 +12,12 @@ describe("resolveLocalizedText", () => {
     expect(resolveLocalizedText(text, "en", { en: "approved" })).toBe("Chocolate cake");
   });
 
-  it("en não aprovado (auto) cai pro pt", () => {
-    expect(resolveLocalizedText(text, "en", { en: "auto" })).toBe("Bolo de chocolate");
+  it("en \"auto\" (traduzido mas não revisado) já aparece, não cai pro pt", () => {
+    expect(resolveLocalizedText(text, "en", { en: "auto" })).toBe("Chocolate cake");
+  });
+
+  it("en \"missing\" cai pro pt", () => {
+    expect(resolveLocalizedText(text, "en", { en: "missing" })).toBe("Bolo de chocolate");
   });
 
   it("sem i18nStatus nenhum, cai pro pt", () => {

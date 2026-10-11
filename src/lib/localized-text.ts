@@ -1,9 +1,11 @@
 import type { I18nStatus, Locale, LocalizedText } from "./schemas/common";
 
 /**
- * en/es só aparecem pro cliente quando aprovados pelo lojista
- * (`i18nStatus[locale] === "approved"`); senão cai pro pt.
- * docs/ARQUITETURA.md, "Internacionalização".
+ * en/es aparecem pro cliente assim que traduzidos — "auto" (automático,
+ * ainda não revisado) ou "approved" (revisado/editado à mão); só cai pro
+ * pt quando o campo nunca foi traduzido ("missing"/ausente). docs/
+ * ARQUITETURA.md, "Internacionalização"; docs/DECISOES.md sobre a mudança
+ * de "só approved" pra "auto já conta".
  */
 export function resolveLocalizedText(
   text: LocalizedText,
@@ -14,5 +16,5 @@ export function resolveLocalizedText(
 
   const status = i18nStatus?.[locale];
   const value = text[locale];
-  return status === "approved" && value ? value : text.pt;
+  return (status === "approved" || status === "auto") && value ? value : text.pt;
 }
