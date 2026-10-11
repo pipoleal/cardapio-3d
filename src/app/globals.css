@@ -38,6 +38,13 @@
   --animate-toast-in: toast-in 0.2s ease-out;
 }
 
+html {
+  /* Clicar numa categoria (CategoryTabsNav) rola suave até a seção, em vez
+     do salto instantâneo padrão do navegador pra âncora (#categoria-<id>).
+     prefers-reduced-motion (abaixo) já volta pro salto instantâneo. */
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-ink);
