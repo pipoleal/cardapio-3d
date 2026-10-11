@@ -35,7 +35,7 @@ Cardápio virtual **multi-loja** em que o cliente final vê os produtos em **3D*
 | Servidor | Route Handlers do Next + **Firebase Admin SDK** (nada de Cloud Functions no piloto) |
 | 3D / AR | `<model-viewer>` do Google (`@google/model-viewer`) |
 | Foto → 3D | Meshy API (atrás da interface `ModelProvider`, trocável por Tripo etc.) |
-| Tradução automática | Google Cloud Translation (servidor, atrás da interface `Translator`) |
+| Tradução automática | DeepL API Free (servidor, atrás da interface `Translator`) — Google Cloud Translation fica como opção alternativa, exige faturamento no GCP (ver `docs/DECISOES.md`) |
 | Fontes | Fraunces (títulos) + DM Sans (texto) via `next/font` |
 | Validação | `zod` |
 | Deploy | Vercel (domínio curinga `*.<DOMINIO>`) |

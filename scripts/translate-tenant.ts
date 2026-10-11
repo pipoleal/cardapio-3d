@@ -16,13 +16,14 @@
  * sobrescrever tudo incondicionalmente (ex.: depois de uma correção em massa
  * no texto em PT que precisa recomeçar a tradução do zero).
  *
- * "google" (`TRANSLATOR_PROVIDER=google`) usa a Cloud Translation API de
- * verdade, reaproveitando as MESMAS credenciais do Admin SDK
- * (FIREBASE_ADMIN_*) — não importamos `src/lib/translate` (tem
- * `server-only`, que sempre lança fora de um Server Component de verdade,
- * mesmo em scripts Node) — por isso a chamada à API é replicada aqui,
- * igual a `src/lib/translate/google.ts`. "fake" (padrão sem a env var) só
- * prefixa "[EN] "/"[ES] ", pra testar a lógica sem gastar crédito.
+ * "google" (`TRANSLATOR_PROVIDER=google`) usa a Cloud Translation API;
+ * "deepl" (`TRANSLATOR_PROVIDER=deepl`, precisa de `DEEPL_API_KEY`) usa o
+ * plano grátis do DeepL — ver docs/DECISOES.md sobre a escolha entre os
+ * dois. Não importamos `src/lib/translate` (tem `server-only`, que sempre
+ * lança fora de um Server Component de verdade, mesmo em scripts Node) —
+ * por isso as chamadas são replicadas aqui, iguais a `src/lib/translate/
+ * google.ts` e `deepl.ts`. "fake" (padrão sem a env var) só prefixa
+ * "[EN] "/"[ES] ", pra testar a lógica sem gastar crédito.
  *
  *   npm run translate-tenant -- boaconfe
  *   npm run translate-tenant -- boaconfe --force
@@ -32,6 +33,7 @@ import { adminDb } from "../src/lib/firebase/admin-app";
 
 type TargetLocale = "en" | "es";
 const TARGETS: TargetLocale[] = ["en", "es"];
+const DEEPL_TARGET_LANG: Record<TargetLocale, string> = { en: "EN-US", es: "ES" };
 
 function googleClient(): Translate {
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
@@ -43,23 +45,45 @@ function googleClient(): Translate {
   return new Translate({ projectId, credentials: { client_email: clientEmail, private_key: privateKey } });
 }
 
+async function deeplTranslate(values: string[], target: TargetLocale): Promise<string[]> {
+  const apiKey = process.env.DEEPL_API_KEY;
+  if (!apiKey) throw new Error("Falta DEEPL_API_KEY no ambiente.");
+
+  const response = await fetch("https://api-free.deepl.com/v2/translate", {
+    method: "POST",
+    headers: { Authorization: `DeepL-Auth-Key ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ text: values, source_lang: "PT", target_lang: DEEPL_TARGET_LANG[target] }),
+  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`DeepL respondeu ${response.status}: ${body.slice(0, 300)}`);
+  }
+  const data = (await response.json()) as { translations: { text: string }[] };
+  return data.translations.map((t) => t.text);
+}
+
 async function translateFields(
   fields: Record<string, string>,
   target: TargetLocale,
 ): Promise<Record<string, string>> {
   const keys = Object.keys(fields);
   if (keys.length === 0) return {};
+  const values = keys.map((key) => fields[key]!);
 
-  if (process.env.TRANSLATOR_PROVIDER !== "google") {
-    const prefix = target === "en" ? "[EN] " : "[ES] ";
-    return Object.fromEntries(keys.map((key) => [key, `${prefix}${fields[key]}`]));
+  if (process.env.TRANSLATOR_PROVIDER === "google") {
+    const translate = googleClient();
+    const [translations] = await translate.translate(values, { from: "pt", to: target });
+    const translatedValues = Array.isArray(translations) ? translations : [translations];
+    return Object.fromEntries(keys.map((key, index) => [key, translatedValues[index]!]));
   }
 
-  const translate = googleClient();
-  const values = keys.map((key) => fields[key]!);
-  const [translations] = await translate.translate(values, { from: "pt", to: target });
-  const translatedValues = Array.isArray(translations) ? translations : [translations];
-  return Object.fromEntries(keys.map((key, index) => [key, translatedValues[index]!]));
+  if (process.env.TRANSLATOR_PROVIDER === "deepl") {
+    const translatedValues = await deeplTranslate(values, target);
+    return Object.fromEntries(keys.map((key, index) => [key, translatedValues[index] ?? fields[key]!]));
+  }
+
+  const prefix = target === "en" ? "[EN] " : "[ES] ";
+  return Object.fromEntries(keys.map((key) => [key, `${prefix}${fields[key]}`]));
 }
 
 async function translateCategory(tenantId: string, categoryId: string, force: boolean): Promise<void> {
@@ -133,7 +157,8 @@ async function run(): Promise<void> {
     process.exit(1);
   }
 
-  console.log(`Provider: ${process.env.TRANSLATOR_PROVIDER === "google" ? "google (de verdade)" : "fake (teste)"}`);
+  const provider = process.env.TRANSLATOR_PROVIDER;
+  console.log(`Provider: ${provider === "google" || provider === "deepl" ? `${provider} (de verdade)` : "fake (teste)"}`);
   console.log(force ? "Modo: --force (sobrescreve tudo, até tradução já aprovada/editada à mão)" : "Modo: pula o que já tem tradução (use --force pra sobrescrever)");
 
   const categoriesSnap = await adminDb.collection("tenants").doc(tenantId).collection("categories").get();
